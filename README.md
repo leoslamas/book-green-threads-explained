@@ -50,7 +50,7 @@ Currently there is an issue I have with the `asm!`macro that doesn't compile in 
 
  I've filed an issue about it in the Rust repo, so we'll wait and see if we get a fix for it.
 
-I've tested the code on both OSX and Windows, I have not tested it under Linux. Please file an issue [in the repository](https://github.com/cfsamson/example-greenthreads) if you find any issues on Linux.
+I've tested the code on OSX, Linux and Windows.
 
 ### Disclaimer <a id="docs-internal-guid-12e6c217-7fff-3de7-4bee-4532b47ef574"></a>
 
