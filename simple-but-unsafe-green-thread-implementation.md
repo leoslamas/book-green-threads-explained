@@ -81,7 +81,7 @@ struct ThreadContext {
 Go back to the chapter[ Background Information](background-information.md) to read about the registers if you don't remember. These are the registers marked as "callee saved" in the specification of the x86-64 arcitecture.
 {% endhint %}
 
-Lets move on:
+Let's move on:
 
 ```rust
 impl Thread {
@@ -334,7 +334,7 @@ Most of this inline assembly is explained in the end of the chapter [An example 
 
 There are two things in this function that differs from our first function:
 
-The `"=*m"` `constraint` on our output parameter is new. As i warned before, inline assembly can be a bit gnarly, but this indicates that we provide a pointer to a memory location so we want to de-reference the memory location and write the values to the de-referenced location.
+The `"=*m"` `constraint` on our output parameter is new. As I warned before, inline assembly can be a bit gnarly, but this indicates that we provide a pointer to a memory location so we want to de-reference the memory location and write the values to the de-referenced location.
 
 ```rust
 0x00($1) # 0
@@ -412,7 +412,7 @@ thread: 2 counter: 14
 THREAD 2 FINISHED.
 ```
 
-Beautiful!! Our threads alternates since they yield control on each count until thread 1 finishes and thread 2 counts the last numbers before it finishes its task.
+Beautiful!! Our threads alternate since they yield control on each count until thread 1 finishes and thread 2 counts the last numbers before it finishes its task.
 
 ### Congratulations
 

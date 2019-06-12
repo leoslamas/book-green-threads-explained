@@ -14,7 +14,7 @@ If you're interested you can find the rest of the specification here: [https://g
 
 Out of interest for us right now is the registers marked as “callee saved”. These are the registers that keep track of our context: the next instructions to run, the base pointer, the stack pointer and so on. We’ll get to know this more in detail later.
 
-If we want to direct the CPU directly we need a some minimal code written in Assembly, fortunately we only need to know some very basic assembly instructions for our mission. How to move values to and from registers:
+If we want to direct the CPU directly we need some minimal code written in Assembly, fortunately we only need to know some very basic assembly instructions for our mission. How to move values to and from registers:
 
 ```text
 mov     %rsp, %rax

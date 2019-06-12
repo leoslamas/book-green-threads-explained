@@ -177,7 +177,7 @@ fn main() {
     unsafe {
         std::ptr::write(stack_ptr.offset(SSIZE - 16) as *mut u64, hello as u64);
         ctx.rsp = stack_ptr.offset(SSIZE - 16) as u64;
-        gt_switch(&mut ctx, &mut n);
+        gt_switch(&mut ctx);
     }
 }
 ```
@@ -192,7 +192,7 @@ Make note that we write the pointer to an the offset of 16 bytes from the base o
 
 We cast it as a pointer to an `u64` instead of a pointer to a `u8`. We want to write to position 32, 33, 34, 35, 36, 37, 38, 39 which is the 8 byte space we need to store our `u64`. If we don't do this cast we try to write an u64 only to position 32 which is not what we want.
 
-We set the `rsp` \(Stack Pointer\) to _the memory address of index 32 in our stack_, we don't pass the value of the `u64`storead at that location but an address to the first byte.
+We set the `rsp` \(Stack Pointer\) to _the memory address of index 32 in our stack_, we don't pass the value of the `u64`stored at that location but an address to the first byte.
 
 When we `cargo run` this code we get:
 
