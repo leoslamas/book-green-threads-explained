@@ -34,6 +34,10 @@ const SSIZE: isize = 48;
 {% endcode-tabs-item %}
 {% endcode-tabs %}
 
+{% hint style="warning" %}
+There seems to be an issue in OSX using such a small stack, and the minimum for this code to run seems to be 624 bytes stack size. The code works on [Rust Playground](https://play.rust-lang.org/) as written here if you want to follow the example word for word.
+{% endhint %}
+
 Then lets add a struct that represents our CPU state. We only focus on the register that stores the "stack pointer" for now since that is all we need:
 
 {% code-tabs %}
