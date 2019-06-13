@@ -70,7 +70,7 @@ fn hello() -> ! {
 
 For this very simple example we will define a function that just prints out a message and then loops forever:
 
-Next up is our inline assembly where we switch ower to our own stack.
+Next up is our inline assembly where we switch over to our own stack.
 
 ```rust
 unsafe fn gt_switch(new: *const ThreadContext) {

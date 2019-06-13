@@ -20,6 +20,12 @@ If we want to direct the CPU directly we need some minimal code written in Assem
 mov     %rsp, %rax
 ```
 
+{% hint style="info" %}
+Windows has a slightly different convention. On Windows the registers XMM6:XMM15 is also callee-saved and must be saved and restored if our functions use them. Our code runs fine on Windows even if we only use the psABI convention in this example, but if you want to experiment yourself on Windows you should make a note of this. Don't worry, you should be able to make this change yourself by the end of this book.
+
+I'll leave you with a [link to their reference](https://docs.microsoft.com/en-us/cpp/build/x64-software-conventions?view=vs-2019#register-volatility-and-preservation) if you want to know more.
+{% endhint %}
+
 #### A super quick introduction to Assembly <a id="docs-internal-guid-bc1ce7bf-7fff-2c5d-a4d5-c91055081781"></a>
 
 First and foremost. Assembly language is not very portable, each CPU might have a special set of instructions, however some are common on most desktop computers today.
