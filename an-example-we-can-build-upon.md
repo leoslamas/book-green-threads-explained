@@ -35,7 +35,7 @@ const SSIZE: isize = 48;
 {% endcode-tabs %}
 
 {% hint style="warning" %}
-There seems to be an issue in OSX using such a small stack, and the minimum for this code to run seems to be 624 bytes stack size. The code works on [Rust Playground](https://play.rust-lang.org/) as written here if you want to follow the example word for word.
+There seems to be an issue in OSX using such a small stack. The minimum for this code to run is a stack size of 624 bytes . The code works on [Rust Playground](https://play.rust-lang.org/) as written here if you want to follow this exact example \(however you'll need to wait ~30 seconds for it to time out due to our loop in the end\).
 {% endhint %}
 
 Then lets add a struct that represents our CPU state. We only focus on the register that stores the "stack pointer" for now since that is all we need:
