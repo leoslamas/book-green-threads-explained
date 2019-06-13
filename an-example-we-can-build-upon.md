@@ -173,8 +173,6 @@ The last one is our `options`. These are unique for Rust and there are three opt
 ```rust
 fn main() {
     let mut ctx = ThreadContext::default();
-    let mut n = ThreadContext::default();
-
     let mut stack = vec![0_u8; SSIZE as usize];
     let stack_ptr = stack.as_mut_ptr();
 
