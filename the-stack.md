@@ -109,7 +109,7 @@ Some implementations use growable stacks. This lets us allocate a small part of 
 GO is an example of this. It starts out with a 8 KB stack and when it runs out of space it reallocates to a larger stack. As in every thing in programming this has some trade-offs, all the pointers you have needs to be updated correctly, and this is not an easy task. If you're more interested in how GO handles it's stack \(which is a good example of the use and trade-offs using a growable stack\) I'll refer you to this article: [https://blog.cloudflare.com/how-stacks-are-handled-in-go/](https://blog.cloudflare.com/how-stacks-are-handled-in-go/).
 
 {% hint style="info" %}
-Note one thing that will be important later: We used a normal`Vec<u8>`from Rusts standard library. It is very convenient for us but this have some problems. Among others, we have no guarantee that it will stay in the same location in memory.
+Note one thing that will be important later: We used a normal`Vec<u8>`from Rusts standard library. It is very convenient for us but this has some problems. Among others, we have no guarantee that it will stay in the same location in memory.
 
 As you might understand, if the stack is moved to a different address space our program will crash since all our pointers will be invalid. Something as simple as doing a`push()`to our stack might trigger an expansion and when a`Vec`expands it asks for a new, and larger, piece of memory and moves the values over.
 {% endhint %}
