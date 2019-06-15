@@ -136,7 +136,7 @@ The `ret`keyword instructs the CPU to pop a memory location off the top of the s
 {% endcode-tabs-item %}
 {% endcode-tabs %}
 
-Inline ASM is a bit different from plain ASM. There are four additional parameters we pass in after the assembly template. This is the first one called `output` and is where we pass in our output parameters and are parameters we want to use as return values in our Rust function.
+Inline ASM is a bit different from plain ASM. There are four additional parameters we pass in after the assembly template. This is the first one called `output` and is where we pass in our output parameters which are parameters we want to use as return values in our Rust function.
 
 {% code-tabs %}
 {% code-tabs-item title="input" %}

@@ -11,7 +11,7 @@ description: >-
 All the code we go through here is [located in a github repository](https://github.com/cfsamson/example-greenthreads). There are two branches, the `main` branch that only contains the code and the `commented` branch that contains the code with comments explaining what we do.
 {% endhint %}
 
-Green threads, userland threads, coroutines, goroutines or fibers, they have many names but for simplicity’s sake I’ll refer to them all as green threads from now on.
+Green threads, userland threads, goroutines or fibers, they have many names but for simplicity’s sake I’ll refer to them all as green threads from now on.
 
 In this article I want to explore how they work by implementing a very simple example where we create our own green threads in 200 lines of Rust code. We'll be explaining everything along the way so our main focus here is to understand them and learn how they work by using simple, but working example.
 
