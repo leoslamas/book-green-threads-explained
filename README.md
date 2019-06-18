@@ -23,7 +23,7 @@ We will not use any external libraries or helpers and will do everything from sc
 
 We are peeking down the rabbit hole in this article so if that sounds scary, this article probably isn’t for you. Just go back and live happily ever after.
 
-If you are the curious kind and want to understand how things work, then read on. Maybe you’ve heard of Go and it’s goroutines, or the equivalent in Ruby or Julia and you know how to use them but want to know how they work - well then read on.
+If you are the curious kind and want to understand how things work, then read on. Maybe you’ve heard of Go and its goroutines, or the equivalent in Ruby or Julia and you know how to use them but want to know how they work - well then read on.
 
 In addition, this should be interesting if:
 

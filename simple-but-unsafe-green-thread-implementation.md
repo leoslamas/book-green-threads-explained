@@ -78,7 +78,7 @@ struct ThreadContext {
 `ThreadContext` holds data for the registers that CPU needs to resume execution on a stack. 
 
 {% hint style="info" %}
-Go back to the chapter [Background Information](background-information.md) to read about the registers if you don't remember. These are the registers marked as "callee saved" in the specification of the x86-64 arcitecture.
+Go back to the chapter [Background Information](background-information.md) to read about the registers if you don't remember. These are the registers marked as "callee saved" in the specification of the x86-64 architecture.
 {% endhint %}
 
 Let's move on:
