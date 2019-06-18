@@ -62,3 +62,7 @@ However, if you spot places where I can make the code safer without making it si
 
 [Quentin Carbonneaux](https://github.com/mpu) wrote an [nice article](https://c9x.me/articles/gthreads/intro.html) back in 2013 which I used as inspiration for the main code example.
 
+### Edits
+
+2019-06-18: New chapter implementing a proper Windows support
+
