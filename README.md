@@ -19,7 +19,7 @@ In this article I want to explore how they work by implementing a very simple ex
 We will not use any external libraries or helpers and will do everything from scratch so we make sure we really understand what's going on.
 {% endhint %}
 
-### Who is this article for?
+## Who is this article for?
 
 We are peeking down the rabbit hole in this article so if that sounds scary, this article probably isn’t for you. Just go back and live happily ever after.
 
@@ -37,32 +37,32 @@ Well, join me as we try to figure out everything we need to understand them.
 You don’t have to be a Rust programmer to understand this article but it is highly recommended to read some of the basic syntax first. If you want to follow a long or clone the repo and play around with the code you should probably get Rust and learn the basics.
 
 {% hint style="info" %}
- [You will find everything you need to set up Rust here.](https://www.rust-lang.org/tools/install)
+[You will find everything you need to set up Rust here.](https://www.rust-lang.org/tools/install)
 {% endhint %}
 
-### Following along
+## Following along
 
 All the code I provide here is in a single file and has no dependencies which means that you can easily start your own project and follow along if you want to \(i suggest you do\). You can even run most of the code in the [Rust playground](https://play.rust-lang.org). Just remember to use the `nightly`version of the compiler.
 
-### Portability and issues
+## Portability and issues
 
 Currently there is an issue I have with the `asm!`macro that doesn't compile in release mode. It seems to be related to the `"=m"`constraint I use in the inline macro. Even though we could work around this, I don't consider that a big problem since this is only an example.
 
- I've filed an issue about it in the Rust repo, so we'll wait and see if we get a fix for it.
+I've filed an issue about it in the Rust repo, so we'll wait and see if we get a fix for it.
 
 I've tested the code on OSX, Linux and Windows.
 
-### Disclaimer <a id="docs-internal-guid-12e6c217-7fff-3de7-4bee-4532b47ef574"></a>
+## Disclaimer  <a id="docs-internal-guid-12e6c217-7fff-3de7-4bee-4532b47ef574"></a>
 
 I’m not trying to make a perfect implementation here. I’m cutting corners to get down to the essence and fit it into what was originally intended to be an article but expanded into a small book. This is not the best way of displaying Rusts greatest strengths, its safety guarantees, but it does show an interesting use of Rust and the code is mostly pretty clean and easy to follow.
 
 However, if you spot places where I can make the code safer without making it significantly more complex, I welcome you to create an issue in [the repo](https://github.com/cfsamson/example-greenthreads) or even better, a pull request.
 
-### Credits
+## Credits
 
 [Quentin Carbonneaux](https://github.com/mpu) wrote an [nice article](https://c9x.me/articles/gthreads/intro.html) back in 2013 which I used as inspiration for the main code example.
 
-### Edits
+## Edits
 
 2019-06-18: New chapter implementing a proper Windows support
 

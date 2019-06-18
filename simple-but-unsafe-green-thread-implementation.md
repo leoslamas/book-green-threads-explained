@@ -2,7 +2,7 @@
 
 Before we start I'll mention that the code we write is quite unsafe and is not a "best practice" when writing Rust code. I want to try to make this as safe as possible without introducing a lot of unneeded complexity, so I encourage you dear reader to suggest a [PR to the projects repo](https://github.com/cfsamson/example-greenthreads) if you see something that could be done a safer way without making our code too complex.
 
-### Lets get going
+## Lets get going
 
 The first thing we do is to delete our example in our `main.rs`so we start from scratch and add the following.
 
@@ -18,7 +18,7 @@ static mut RUNTIME: usize = 0;
 
 We enable two features the `asm`feature that we covered earlier, and the `naked_functions`feature, that we need to explain.
 
-#### naked\_functions
+### naked\_functions
 
 You see, when Rust compiles a function, it adds a small prologue and epilogue to each function and this causes some issues for us when we switch contexts since we end up with a misaligned stack. This worked fine in our first simple example but once we need to push more functions to the stack we end up with trouble. Marking the a function as `#[naked]`removes the prologue and epilogue and as you will see with some adjustments it makes the code run on both OSX, Linux and Windows.
 
@@ -75,7 +75,7 @@ struct ThreadContext {
 * `Running` means the thread is running
 * `Ready` means the thread is ready to move forward and resume execution
 
-`ThreadContext` holds data for the registers that CPU needs to resume execution on a stack. 
+`ThreadContext` holds data for the registers that CPU needs to resume execution on a stack.
 
 {% hint style="info" %}
 Go back to the chapter [Background Information](background-information.md) to read about the registers if you don't remember. These are the registers marked as "callee saved" in the specification of the x86-64 architecture.
@@ -96,17 +96,17 @@ impl Thread {
 }
 ```
 
-This is pretty easy. A new thread starts in the `Available` state indicating it is ready to be assigned a task. 
+This is pretty easy. A new thread starts in the `Available` state indicating it is ready to be assigned a task.
 
 One thing to note is that we allocate our stack here. That is not needed and is not an optimal use of our resources since we allocate memory for threads we might need instead of allocating on first use. However, this keeps complexity down in the parts of our code that has a more important focus than allocating memory for our stack.
 
 {% hint style="warning" %}
-The important thing to note is that once a stack is allocated it must not move! No`push()`on the vector or any other methods that might trigger a reallocation. In a better version of this code we would make our own type that only exposes the methods we consider safe to use. 
+The important thing to note is that once a stack is allocated it must not move! No`push()`on the vector or any other methods that might trigger a reallocation. In a better version of this code we would make our own type that only exposes the methods we consider safe to use.
 
 There is a low hanging fruit by storing a heap allocated slice to our data.`Vec`has a [method ](https://doc.rust-lang.org/std/vec/struct.Vec.html#method.into_boxed_slice)called`into_boxed_slice()`which can't grow. If we store that instead we can avoid the reallocation problem.
 {% endhint %}
 
-### Implementing the Runtime
+## Implementing the Runtime
 
 All the code in this segment is in `impl Runtime` block meaning that they are methods on the `Runtime` struct.
 
@@ -169,11 +169,11 @@ This is where we start running our run-time. It will continually call `t_yield()
     }
 ```
 
-This is our return function that we call when the thread is finished. `return` is another reserved keyword in Rust so we name this `t_return()`. Make a note that the _user_ of our threads does not call this, we set up our stack so this is called when the task is done. 
+This is our return function that we call when the thread is finished. `return` is another reserved keyword in Rust so we name this `t_return()`. Make a note that the _user_ of our threads does not call this, we set up our stack so this is called when the task is done.
 
 If the calling thread is the `base_thread` we don't do anything. Our runtime will call `yield` for us on the base thread. If it's called from a spawned thread we know it's finished since all threads have a `guard` function on top of their stack \(which we'll show further down\) and the only place this function is called is on our `guard` function.
 
-We set its state to `Available` letting the runtime know it's ready to be assigned a new task and then immediately call `t_yield` which will schedule a new thread to be run. 
+We set its state to `Available` letting the runtime know it's ready to be assigned a new task and then immediately call `t_yield` which will schedule a new thread to be run.
 
 Next: our `yield` function:
 
@@ -214,12 +214,12 @@ Here we go through all the threads and see if anyone is in the `Ready` state whi
 If no thread is `Ready` we're all done. This is an extremely simple scheduler using only a round-robin algorithm, a real scheduler might have a much more sophisticated way of deciding what task to run next.
 
 {% hint style="info" %}
-This is a very naive implementation tailor made for our example. What happens if our thread is not ready to make progress \(not in a `Ready` state\) and still waiting for a response from i.e. a database? 
+This is a very naive implementation tailor made for our example. What happens if our thread is not ready to make progress \(not in a `Ready` state\) and still waiting for a response from i.e. a database?
 
-It's not too difficult to work around this, instead of running our code directly when a thread is `Ready` we could instead poll it for a status. For example it could return `IsReady` if it's really ready to run or `Pending` if it's waiting for some operation to finish. In the latter case we could just leave it in it's `Ready` state to get polled again later. Does this sound familiar? If you've read about how [Futures](https://rust-lang-nursery.github.io/futures-api-docs/0.3.0-alpha.16/futures/task/enum.Poll.html#variant.Pending) work in Rust, we are starting to connect some dots on how this all fits together. 
+It's not too difficult to work around this, instead of running our code directly when a thread is `Ready` we could instead poll it for a status. For example it could return `IsReady` if it's really ready to run or `Pending` if it's waiting for some operation to finish. In the latter case we could just leave it in it's `Ready` state to get polled again later. Does this sound familiar? If you've read about how [Futures](https://rust-lang-nursery.github.io/futures-api-docs/0.3.0-alpha.16/futures/task/enum.Poll.html#variant.Pending) work in Rust, we are starting to connect some dots on how this all fits together.
 {% endhint %}
 
-If we find a thread that's ready to be run we change the state of the current thread from `Running` to `Ready`.  
+If we find a thread that's ready to be run we change the state of the current thread from `Running` to `Ready`.
 
 Then we call `switch` which will save the current context \(the old context\) and load the new context into the CPU. The new context is either a new task, or all the information the CPU needs to resume work on an existing task.
 
@@ -265,7 +265,7 @@ Lastly we set the state as `Ready` which means we have work to do and that we ar
 
 We're now finished implementing our `Runtime`, if you got all this you basically understand _how_ green threads work. However there are still a few details needed to implement them.
 
-### Guard and switch functions
+## Guard and switch functions
 
 ```rust
 #[cfg_attr(any(target_os="windows", target_os="linux"), naked)]
@@ -316,7 +316,7 @@ unsafe fn switch(old: *mut ThreadContext, new: *const ThreadContext) {
         mov     0x28($1), %rbx
         mov     0x30($1), %rbp
         ret
-        
+
         "
     : "=*m"(old)
     : "r"(new)
@@ -349,7 +349,7 @@ I mentioned this briefly, but here you see it in action. These are `hex` numbers
 
 This is also why it's important to annotate `ThreadContext` with `#[repr(C)]` so we know that the data will be represented in memory this way and we write to the right field. The Rust ABI makes no guarantee that they are represented in the same order in memory, however the C-ABI does.
 
-### The main function
+## The main function
 
 ```rust
 fn main() {
@@ -360,7 +360,7 @@ fn main() {
         println!("THREAD 1 STARTING");
         let id = 1;
         for i in 0..10 {
-            println!("thread: {} counter: {}", id, i);
+            println!("thread: {} counter: {}", id, i);
             yield_thread();
         }
     });
@@ -369,11 +369,11 @@ fn main() {
         println!("THREAD 2 STARTING");
         let id = 2;
         for i in 0..15 {
-            println!("thread: {} counter: {}", id, i);
+            println!("thread: {} counter: {}", id, i);
             yield_thread();
         }
     });
-    
+
     runtime.run();
 }
 ```
@@ -416,7 +416,7 @@ THREAD 2 FINISHED.
 
 Beautiful!! Our threads alternate since they yield control on each count until thread 1 finishes and thread 2 counts the last numbers before it finishes its task.
 
-### Congratulations
+## Congratulations
 
 You have now implemented a super simple, but working, example of green threads. It was quite a ride we had to take, but if you came this far and read through everything you deserve a little break. Thanks for reading!
 
