@@ -1,6 +1,6 @@
 # Supporting Windows properly
 
-Our example works for both OSX, Linux and Windows, but as I have pointed out, our Windows implementation is not correct even though it's working for our example. Since I've been quite commited to make this work on all three arcitectures, I'll make go through what you'll need to know in this chapter.
+Our example works for both OSX, Linux and Windows, but as I have pointed out, our Windows implementation is not correct even though it's working. Since I've been quite commited to make this work on all three platforms, I'll make go through what you'll need to know in this chapter.
 
 You might wonder why I didn't include this in the original code, and the reason for that is that this is really not at all that relevant for explaining the main concepts I wanted to explore.
 
