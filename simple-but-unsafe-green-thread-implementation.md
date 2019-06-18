@@ -65,20 +65,20 @@ struct ThreadContext {
 }
 ```
 
-`Runtime`is going to be where our main entry point. We are basically going to create a very small, simple runtime to schedule and switch between our threads. The runtime holds an array of `Threads`and a `current`field to indicate which thread we are currently running.
+`Runtime` is going to be where our main entry point. We are basically going to create a very small, simple runtime to schedule and switch between our threads. The runtime holds an array of `Threads` and a `current` field to indicate which thread we are currently running.
 
-`Thread` holds data for a thread. Each thread has an `id` so we can separate them from each other. The `stack`is similar to what we saw in our first example in earlier chapters. The `ctx`field is a context representing the data our CPU needs to resume where it left of on a stack, and a `state`which is our thread state.
+`Thread` holds data for a thread. Each thread has an `id` so we can separate them from each other. The `stack` is similar to what we saw in our first example in earlier chapters. The `ctx` field is a context representing the data our CPU needs to resume where it left of on a stack, and a `state` which is our thread state.
 
-`State`is an `enum` representing the states our threads can be in:
+`State` is an `enum` representing the states our threads can be in:
 
-* `Available`means the thread is available and ready to be assigned a task if needed.
+* `Available` means the thread is available and ready to be assigned a task if needed.
 * `Running` means the thread is running
-* `Ready`means the thread is ready to move forward and resume execution
+* `Ready` means the thread is ready to move forward and resume execution
 
-`ThreadContext`holds data for the registers that CPU needs to resume execution on a stack. 
+`ThreadContext` holds data for the registers that CPU needs to resume execution on a stack. 
 
 {% hint style="info" %}
-Go back to the chapter[ Background Information](background-information.md) to read about the registers if you don't remember. These are the registers marked as "callee saved" in the specification of the x86-64 arcitecture.
+Go back to the chapter [Background Information](background-information.md) to read about the registers if you don't remember. These are the registers marked as "callee saved" in the specification of the x86-64 arcitecture.
 {% endhint %}
 
 Let's move on:
@@ -96,17 +96,17 @@ impl Thread {
 }
 ```
 
-This is pretty easy. A new thread starts in the `Available`state indicating it is ready to be assigned a task. 
+This is pretty easy. A new thread starts in the `Available` state indicating it is ready to be assigned a task. 
 
 One thing to note is that we allocate our stack here. That is not needed and is not an optimal use of our resources since we allocate memory for threads we might need instead of allocating on first use. However, this keeps complexity down in the parts of our code that has a more important focus than allocating memory for our stack.
 
 {% hint style="warning" %}
-The important thing to note is that once a stack is allocated it must not move! No`push()`on the vector or any other methods that might trigger a reallocation. In a better version of this code we would make our own type that only exposes the methods we consider safe to use. 
+The important thing to note is that once a stack is allocated it must not move! No `push()` on the vector or any other methods that might trigger a reallocation. In a better version of this code we would make our own type that only exposes the methods we consider safe to use. 
 {% endhint %}
 
 ### Implementing the Runtime
 
-All the code in this segment is in `impl Runtime`block meaning that they are methods on the `Runtime`struct.
+All the code in this segment is in `impl Runtime` block meaning that they are methods on the `Runtime` struct.
 
 ```rust
 impl Runtime {
@@ -131,9 +131,9 @@ impl Runtime {
     }
 ```
 
-When we instantiate our `Runtime`we set up a base thread. This thread will be set to the `Running`state and will make sure we keep the run-time running until all tasks are finished.
+When we instantiate our `Runtime` we set up a base thread. This thread will be set to the `Running` state and will make sure we keep the run-time running until all tasks are finished.
 
-Then we instantiate the rest of the threads and set the current thread to `0`which is our base thread.
+Then we instantiate the rest of the threads and set the current thread to `0` which is our base thread.
 
 ```rust
     /// This is cheating a bit, but we need a pointer to our Runtime 
@@ -147,7 +147,7 @@ Then we instantiate the rest of the threads and set the current thread to `0`whi
     }
 ```
 
-Right now we need this. As I mentioned when going through our constants we need this to be able to call `yield`later on. It's not pretty, but we know that our runtime will be alive as long as there is any thread to `yield`so as long as we don't abuse this it's safe to do.
+Right now we need this. As I mentioned when going through our constants we need this to be able to call `yield` later on. It's not pretty, but we know that our runtime will be alive as long as there is any thread to `yield` so as long as we don't abuse this it's safe to do.
 
 ```rust
     pub fn run(&mut self) -> ! {
@@ -156,7 +156,7 @@ Right now we need this. As I mentioned when going through our constants we need 
     }
 ```
 
-This is where we start running our run-time. It will continually call `t_yield()`until it returns `false`which means that there are no more work to do and we can exit the process.
+This is where we start running our run-time. It will continually call `t_yield()` until it returns `false` which means that there is no more work to do and we can exit the process.
 
 ```rust
     fn t_return(&mut self) {
@@ -167,13 +167,13 @@ This is where we start running our run-time. It will continually call `t_yield()
     }
 ```
 
-This is our return function that we call when the thread is finished. `return`is another reserved keyword in Rust so we name this `t_return()`. Make a note that the _user_ of our threads does not call this, we set up our stack so this is called when the task is done. 
+This is our return function that we call when the thread is finished. `return` is another reserved keyword in Rust so we name this `t_return()`. Make a note that the _user_ of our threads does not call this, we set up our stack so this is called when the task is done. 
 
-If the calling thread is the `base_thread` we don't do anything. Our runtime will call `yield`for us on the base thread. If it's called from a spawned thread we know it's finished since all threads have a `guard` function on top of their stack \(which we'll show further down\) and the only place this function is called is on our `guard`function.
+If the calling thread is the `base_thread` we don't do anything. Our runtime will call `yield` for us on the base thread. If it's called from a spawned thread we know it's finished since all threads have a `guard` function on top of their stack \(which we'll show further down\) and the only place this function is called is on our `guard` function.
 
 We set its state to `Available` letting the runtime know it's ready to be assigned a new task and then immediately call `t_yield` which will schedule a new thread to be run. 
 
-Next: our `yield`function:
+Next: our `yield` function:
 
 ```rust
     fn t_yield(&mut self) -> bool {
@@ -205,7 +205,7 @@ Next: our `yield`function:
     }
 ```
 
-This is the heart of our run-time. We have to name this `t_yield`since `yield`is a reserved keyword in Rust.
+This is the heart of our run-time. We have to name this `t_yield` since `yield` is a reserved keyword in Rust.
 
 Here we go through all the threads and see if anyone is in the `Ready` state which indicates it has a task it is ready to make progress on. This could be a database call that has returned in a real world application.
 
@@ -214,7 +214,7 @@ If no thread is `Ready` we're all done. This is an extremely simple scheduler us
 {% hint style="info" %}
 This is a very naive implementation tailor made for our example. What happens if our thread is not ready to make progress \(not in a `Ready` state\) and still waiting for a response from i.e. a database? 
 
-It's not too difficult to work around this, instead of running our code directly when a thread is `Ready` we could instead poll it for a status. For example it could return `IsReady` if it's really ready to run or`Pending`if it's waiting for some operation to finish. In the latter case we could just leave it in it's `Ready` state to get polled again later. Does this sound familiar? If you've read about how [Futures ](https://rust-lang-nursery.github.io/futures-api-docs/0.3.0-alpha.16/futures/task/enum.Poll.html#variant.Pending)in rust works, we are starting to connect some dots on how this all fits together. 
+It's not too difficult to work around this, instead of running our code directly when a thread is `Ready` we could instead poll it for a status. For example it could return `IsReady` if it's really ready to run or `Pending` if it's waiting for some operation to finish. In the latter case we could just leave it in it's `Ready` state to get polled again later. Does this sound familiar? If you've read about how [Futures](https://rust-lang-nursery.github.io/futures-api-docs/0.3.0-alpha.16/futures/task/enum.Poll.html#variant.Pending) work in Rust, we are starting to connect some dots on how this all fits together. 
 {% endhint %}
 
 If we find a thread that's ready to be run we change the state of the current thread from `Running` to `Ready`.  
@@ -224,7 +224,7 @@ Then we call `switch` which will save the current context \(the old context\) an
 Next up is our `spawn()`function:
 
 ```rust
-pub fn spawn(&mut self, f: fn()) {
+    pub fn spawn(&mut self, f: fn()) {
         let available = self
             .threads
             .iter_mut()
@@ -254,7 +254,7 @@ When we find an available thread we get the stack length and a pointer to our `u
 In the next segment we have to use some unsafe functions. First we write the address to our `guard` function that will be called when the task we provide finishes and the function returns. Then we write the address to `f`which is the function we pass inn and want to run.
 
 {% hint style="info" %}
-Remember how we explained how the stack works in `The Stack`chapter. We want the `f`function to be the first to run so we set the base pointer to `f`and make sure it's 16 byte aligned. We then push the address to `guard`function. This is not 16 byte aligned but when `f`returns the CPU will read the next address as the return address of `f`and resume execution there.
+Remember how we explained how the stack works in [The Stack](the-stack.md) chapter. We want the `f` function to be the first to run so we set the base pointer to `f`and make sure it's 16 byte aligned. We then push the address to `guard`function. This is not 16 byte aligned but when `f` returns the CPU will read the next address as the return address of `f`and resume execution there.
 {% endhint %}
 
 Third, we set the value of `rsp` which is the stack pointer to the address of our provided function so we start executing that first when we are scheduled to run.
@@ -279,7 +279,7 @@ fn guard() {
 
 Here we meet our first portability issue. `[cfg_attr(any(target_os="windows", target_os="linux"), naked)]` is a conditional compilation attribute. If the target OS is Windows or Linux we compile this function with the `#[naked]`attribute, if not we don't compile it with the attribute. This way the code runs fine on Windows, the [Rust Playground](https://play.rust-lang.org/?version=nightly&mode=debug&edition=2018&gist=5fecced06eda366283ed34cbbfbd2903) and on my mac.
 
-The function means that the function we passed in has returned and that means our thread is finished running its task so we de-references our `Runtime`and call `t_return()`. We could have made a function that did some additional work when a thread is finished but right now our  `t_return()`function does all we need. It marks our thread as `Available`\(if it's not our base thread\) and `yields`so we can resume work on a different thread.
+The function means that the function we passed in has returned and that means our thread is finished running its task so we de-reference our `Runtime` and call `t_return()`. We could have made a function that does some additional work when a thread is finished but right now our `t_return()` function does all we need. It marks our thread as `Available` \(if it's not our base thread\) and `yields` so we can resume work on a different thread.
 
 ```rust
 pub fn yield_thread() {
@@ -290,9 +290,9 @@ pub fn yield_thread() {
 }
 ```
 
-This is just a helper function that lets us call `yield`from an arbitrary place in our code. This is pretty unsafe though, if we call this and our `Runtime`is not initialized yet or the runtime is dropped it will cause a `panic()`. However making this safer is not a priority for us just to get our example up and running.
+This is just a helper function that lets us call `yield` from an arbitrary place in our code. This is pretty unsafe though, if we call this and our `Runtime` is not initialized yet or the runtime is dropped it will result in undefined behavior. However making this safer is not a priority for us just to get our example up and running.
 
-We are very soon at the finish line, just one more function to go. This one should be possible to understand without much comments if you've gone through the previous chapters:
+We are very soon at the finish line, just one more function to go. This one should be possible to understand without many comments if you've gone through the previous chapters:
 
 ```rust
 #[naked]
@@ -343,9 +343,9 @@ The `"=*m"` `constraint` on our output parameter is new. As I warned before, inl
 0x18($1) # 24
 ```
 
-I mentioned this briefly, but here you see it in action. These are `hex`numbers indicating the _offset_ from the memory pointer to which we want to read/write. I wrote down the base-10 numbers as comments so you see we only offset the pointer in 8 byte steps which is the same size as the `u64`fields on our `ThreadContext`struct.
+I mentioned this briefly, but here you see it in action. These are `hex` numbers indicating the _offset_ from the memory pointer to which we want to read/write. I wrote down the base-10 numbers as comments so you see we only offset the pointer in 8 byte steps which is the same size as the `u64`fields on our `ThreadContext` struct.
 
-This is also why it's important to annotate `ThreadContext`with `#[repr(C)]`so we know that the data will be represented in memory this way and we write to the right field. The Rust ABI makes no guarantee that they are represented in the same order in memory, however the C-ABI does.
+This is also why it's important to annotate `ThreadContext` with `#[repr(C)]` so we know that the data will be represented in memory this way and we write to the right field. The Rust ABI makes no guarantee that they are represented in the same order in memory, however the C-ABI does.
 
 ### The main function
 
@@ -376,7 +376,7 @@ fn main() {
 }
 ```
 
-As you see here we initialize our runtime and spawn two threads one that counts to 10 and `yields`between each count, and one that counts to 15. When we `cargo run`our project we should get the following output:
+As you see here we initialize our runtime and spawn two threads one that counts to 10 and `yields` between each count, and one that counts to 15. When we `cargo run` our project we should get the following output:
 
 ```text
 Finished dev [unoptimized + debuginfo] target(s) in 2.17s
