@@ -101,7 +101,9 @@ This is pretty easy. A new thread starts in the `Available` state indicating it 
 One thing to note is that we allocate our stack here. That is not needed and is not an optimal use of our resources since we allocate memory for threads we might need instead of allocating on first use. However, this keeps complexity down in the parts of our code that has a more important focus than allocating memory for our stack.
 
 {% hint style="warning" %}
-The important thing to note is that once a stack is allocated it must not move! No `push()` on the vector or any other methods that might trigger a reallocation. In a better version of this code we would make our own type that only exposes the methods we consider safe to use. 
+The important thing to note is that once a stack is allocated it must not move! No`push()`on the vector or any other methods that might trigger a reallocation. In a better version of this code we would make our own type that only exposes the methods we consider safe to use. 
+
+There is a low hanging fruit by storing a heap allocated slice to our data.`Vec`has a [method ](https://doc.rust-lang.org/std/vec/struct.Vec.html#method.into_boxed_slice)called`into_boxed_slice()`which can't grow. If we store that instead we can avoid the reallocation problem.
 {% endhint %}
 
 ### Implementing the Runtime

@@ -166,7 +166,7 @@ The next option is the `clobber` list where you specify what registers the compi
 {% endcode-tabs-item %}
 {% endcode-tabs %}
 
-The last one is our `options`. These are unique for Rust and there are three options we can set: `alignstack`, `volatile` and `intel`. I'll refer you [to the documentation to read about them](https://doc.rust-lang.org/unstable-book/language-features/asm.html#options) since they're explained there. Worth noting is that we need to specify the "alingstack" for the code to work on Windows.
+The last one is our `options`. These are unique for Rust and there are three options we can set: `alignstack`, `volatile` and `intel`. I'll refer you [to the documentation to read about them](https://doc.rust-lang.org/unstable-book/language-features/asm.html#options) since they're explained there. Worth noting is that we need to specify the "alignstack" for the code to work on Windows.
 
 ### Running our example
 

@@ -1,4 +1,4 @@
-# Background information
+# Background Information
 
 This is the most technical part of this book but if we truly want to understand, we just have to go through it. I promise I will make it as fast and to the point as possible. We’ll soon enough move on to the code.
 
@@ -21,9 +21,9 @@ mov     %rsp, %rax
 ```
 
 {% hint style="info" %}
-Windows has a slightly different convention. On Windows the registers XMM6:XMM15 is also callee-saved and must be saved and restored if our functions use them. Our code runs fine on Windows even if we only use the psABI convention in this example, but if you want to experiment yourself on Windows you should make a note of this. Don't worry, you should be able to make this change yourself by the end of this book.
+Windows has a slightly different convention. On Windows the registers XMM6:XMM15 is also callee-saved and must be saved and restored if our functions use them. Our code runs fine on Windows even if we only use the psABI convention in this example.
 
-I'll leave you with a [link to their reference](https://docs.microsoft.com/en-us/cpp/build/x64-software-conventions?view=vs-2019#register-volatility-and-preservation) if you want to know more.
+There are one more subtle difference as well that you can read about in the last chapter: [Properly supporting Windows](supporting-windows.md) where we go through everything. You can follow along anyway, since everything will work on Windows, but it will not be a correct implementation.
 {% endhint %}
 
 #### A super quick introduction to Assembly <a id="docs-internal-guid-bc1ce7bf-7fff-2c5d-a4d5-c91055081781"></a>
@@ -48,7 +48,11 @@ Assembly has a strong backwards compatibility guarantee. That’s why you will s
 
 As you can see, this is basically watching the history of CPUs evolve in front of us. Since most CPUs today are 64 bits, we will use the 64 bit registers in our code.
 
+The `word`size in assembly also has historical reasons. It stems from the time when the CPU had 16 bit data buses, so a `word`is 16 bits. This is relevant because in AT&T dialect you will see many instructions suffixed with "q" \(quad-word\), or "l" \(long-word\). So a `movq`would mean a move of 4 \* word\(16 bits\) = 64 bits. 
+
+A plain `mov` will use the size of the register you use. This is the standard in the Intel dialect and the one we will use in our code.
+
 We will go through a bit more of the syntax of inline assembly in the next chapter.
 
-One more thing to note is that the stack alignment on x86-64 is **16 bytes.** Just remember this for later.
+One more thing to note is that the **stack alignment on x86-64 is** **16 bytes.** Just remember this for later.
 
