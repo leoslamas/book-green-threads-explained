@@ -11,7 +11,7 @@ The reason I don't consider this important enough to implement in the main examp
 {% hint style="info" %}
 Conditionally compiling this to support windows correctly bloats our code with almost 50 % without adding much to what we need for a basic understanding.
 
-Now that doesn't mean this isn't interesting, on the contrary, it's pretty exiting. We'll also experience first hand some of the difficulties of supporting multiple platforms when doing everything from scratch.
+Now that doesn't mean this isn't interesting, on the contrary, but we'll also experience first hand some of the difficulties of supporting multiple platforms when doing everything from scratch.
 {% endhint %}
 
 
