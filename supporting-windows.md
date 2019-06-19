@@ -49,7 +49,7 @@ struct ThreadContext {
 
 ### The Thread Information Block
 
-The second part is poorly documented. I've actually struggled to verify exactly how skipping this will cause a failure on modern Windows but there's enough references to it around from trustworthy sources that I'm in no doubt we need to go through this.
+The second part is poorly documented. I've actually struggled to verify exactly how skipping this will cause a failure on modern Windows but there's [enough references to it](https://probablydance.com/2013/02/20/handmade-coroutines-for-windows/) around from trustworthy sources that I'm in no doubt we need to go through this.
 
 You see, Windows wants to store some information about the currently running thread in what it calls the `Thread Information Block`, referred to as `NT_TIB`. Specifically it wants access to information about the `Stack Base`and the `Stack Limit`in the `%gs`register.
 
