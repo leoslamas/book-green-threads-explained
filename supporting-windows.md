@@ -1,4 +1,4 @@
-# Properly supporting Windows
+# Appendix: Supporting Windows
 
 Our example works for both OSX, Linux and Windows, but as I have pointed out, our Windows implementation is not correct even though it's working. Since I've been quite commited to make this work on all three platforms, I'll go through what we need to do in this chapter.
 

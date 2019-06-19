@@ -7,5 +7,5 @@
 * [The stack](the-stack.md)
 * [An implementation of green threads](simple-but-unsafe-green-thread-implementation.md)
 * [Final 200 lines of code](final-200-lines-of-code.md)
-* [Properly supporting Windows](supporting-windows.md)
+* [Appendix: Supporting Windows](supporting-windows.md)
 
