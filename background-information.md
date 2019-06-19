@@ -23,7 +23,7 @@ mov     %rsp, %rax
 {% hint style="info" %}
 Windows has a slightly different convention. On Windows the registers XMM6:XMM15 is also callee-saved and must be saved and restored if our functions use them. Our code runs fine on Windows even if we only use the psABI convention in this example.
 
-There are one more subtle difference as well that you can read about in the last chapter: [Appendix: Supporting Windows](supporting-windows.md) where we go through everything. You can follow along anyway, since everything will work on Windows, but it will not be a correct implementation.
+There are one more subtle difference as well that you can read about in [Appendix: Supporting Windows](supporting-windows.md) where we go through everything. You can follow along anyway, since everything will work on Windows, but it will not be a correct implementation.
 {% endhint %}
 
 #### A super quick introduction to Assembly <a id="docs-internal-guid-bc1ce7bf-7fff-2c5d-a4d5-c91055081781"></a>
