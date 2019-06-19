@@ -155,20 +155,23 @@ struct ThreadContext {
 fn print_stack(filename: &str) {
     let mut f = std::fs::File::create(filename).unwrap();
     unsafe {
-         for i in (0..SSIZE).rev() {
-            writeln!(f, "mem: {}, val: {}", S_PTR.offset(i as isize) as usize, *S_PTR.offset(i as isize));
+        for i in (0..SSIZE).rev() {
+            writeln!(
+                f,
+                "mem: {}, val: {}",
+                S_PTR.offset(i as isize) as usize,
+                *S_PTR.offset(i as isize)
+            )
+            .expect("Error writing to file.");
         }
-    }   
+    }
 }
 
-#[naked]
-fn hello()  {
+fn hello() {
     println!("I LOVE WAKING UP ON A NEW STACK!");
     print_stack("AFTER.txt");
 
-    loop {
-
-    }
+    loop {}
 }
 
 unsafe fn gt_switch(new: *const ThreadContext) {
@@ -179,13 +182,12 @@ unsafe fn gt_switch(new: *const ThreadContext) {
     :
     : "r"(new)
     :
-    : "alignstack" 
+    : "alignstack"
     );
 }
 
 fn main() {
     let mut ctx = ThreadContext::default();
-    
     let mut stack = vec![0_u8; SSIZE as usize];
     let stack_ptr = stack.as_mut_ptr();
 
@@ -197,7 +199,5 @@ fn main() {
         gt_switch(&mut ctx);
     }
 }
-
-
 ```
 
