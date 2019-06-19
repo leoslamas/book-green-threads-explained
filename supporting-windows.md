@@ -61,7 +61,7 @@ The answer I found was a bit perplexing. Apparently these segment registers, GS 
 
 That means that these segment registers are freely used by operating systems for what they deem appropriate. Windows stores information about the currently running thread in the GS register, and Linux uses these registers for thread local storage. 
 
-As you might notice Windows expects information about the currently running thread, and when we switch threads, we should provide the information it expects about our [Stack Base and our Stack Limit](https://en.wikipedia.org/wiki/Win32_Thread_Information_Block).
+When we switch threads, we should provide the information it expects about our [Stack Base and our Stack Limit](https://en.wikipedia.org/wiki/Win32_Thread_Information_Block).
 
 Our `ThreadContext` now looks like this:
 
@@ -100,7 +100,7 @@ struct ThreadContext {
 Notice we use the `#[cfg(target_os="windows")]` attribute here on all the Windows specific functions and structs, which mean we need to give our "original" definitions an attribute that makes sure it compiles them for all other targets than Windows: `[cfg(not(target_os="windows"))].`
 {% endhint %}
 
-I named the fields `stack_start`and `stack_end`since I find that easier to mentally parse since we know the stack starts on the top and grows downwards to the end.
+I named the fields `stack_start`and `stack_end`since I find that easier to mentally parse since we know the stack starts on the top and grows downwards to the bottom.
 
 Now to implement this we need to make a change to our `spawn()`function to actually provide this information:
 
