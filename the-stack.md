@@ -116,6 +116,16 @@ As you might understand, if the stack is moved to a different address space our 
 
 Ok, now that we've gone through the basics of how a stack looks and works and we are ready to move on to implementing our green threads. You've already done much of the hard work so I promise more code now.
 
+How to set up the stack
+
+The Windows x64-86 sets up its stack slightly differently from the x64-86 psABI calling convention. I'll dedicate more time to the Windows stack in the [Appendix: Supporting Windows](supporting-windows.md) chapter, but important to know is that the differences are not that big when we're setting up the stack with simple functions that doesn't take parameters like we do here.
+
+The psABI stack layout is like this:
+
+![](.gitbook/assets/bilde.png)
+
+As you know now the `%rsp`is our stack pointer. Now as you see we need to put the stack pointer in a position which is a multiple of 16 from our base. The return address is located in the adjacent 8 bytes, and as you see there is a room for memory arguments above that. As you'll see we need to reserve some of that space when we want to do more complex things. 
+
 ## Bonus material
 
 If you are curious enough you might wonder what happens with the stack after we switch over to it?
