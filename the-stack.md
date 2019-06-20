@@ -12,7 +12,7 @@ We'll not go through the differences between the stack and the heap here, since 
 
 ![Simplified view of a stack](.gitbook/assets/image.png)
 
-Let's start with a simplified view of the stack. A 64 bit CPU will read 8 bytes at a time, even though the natural way for us to see a stack is a long line of `u8`so when we pass a pointer we need to make sure we pass inn a pointer to either address `0016`, `0008` or `0000` in the example above. 
+Let's start with a simplified view of the stack. A 64 bit CPU will read 8 bytes at a time, even though the natural way for us to see a stack is a long line of `u8`so when we pass a pointer we need to make sure we pass in a pointer to either address `0016`, `0008` or `0000` in the example above. 
 
 The stack grows downwards, so we start at the top and work our way down.
 
