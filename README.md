@@ -13,7 +13,7 @@ All the code we go through here is [located in a github repository](https://gith
 
 Green threads, userland threads, goroutines or fibers, they have many names but for simplicity’s sake I’ll refer to them all as green threads from now on.
 
-In this article I want to explore how they work by implementing a very simple example where we create our own green threads in 200 lines of Rust code. We'll be explaining everything along the way so our main focus here is to understand them and learn how they work by using simple, but working example.
+In this article I want to explore how they work by implementing a very simple example where we create our own green threads in 200 lines of Rust code. We’ll be explaining everything along the way so our main focus here is to understand them and learn how they work by using simple, but working example.
 
 {% hint style="info" %}
 We will not use any external libraries or helpers and will do everything from scratch so we make sure we really understand what's going on.
@@ -48,7 +48,7 @@ All the code I provide here is in a single file and has no dependencies which me
 
 Currently there is an issue I have with the `asm!`macro that doesn't compile in release mode. It seems to be related to the `"=m"`constraint I use in the inline macro. Even though we could work around this, I don't consider that a big problem since this is only an example.
 
-I've filed an issue about it in the Rust repo, so we'll wait and see if we get a fix for it.
+I've filed an issue about it in the Rust repo, so we’ll wait and see if we get a fix for it.
 
 I've tested the code on OSX, Linux and Windows.
 

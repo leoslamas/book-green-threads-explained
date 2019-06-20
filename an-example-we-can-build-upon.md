@@ -1,7 +1,7 @@
 # An example we can build upon
 
 {% hint style="info" %}
-In this example we will create our own stack and make our CPU return out of it's current execution context and over to the stack we just created. We will build on these concepts in the following chapters \(we will not build upon the code though\).
+In this example we will create our own stack and make our CPU return out of it’s current execution context and over to the stack we just created. We will build on these concepts in the following chapters \(we will not build upon the code though\).
 {% endhint %}
 
 ## Setting up our project
@@ -35,7 +35,7 @@ const SSIZE: isize = 48;
 {% endcode-tabs %}
 
 {% hint style="warning" %}
-There seems to be an issue in OSX using such a small stack. The minimum for this code to run is a stack size of 624 bytes . The code works on [Rust Playground](https://play.rust-lang.org/) as written here if you want to follow this exact example \(however you'll need to wait ~30 seconds for it to time out due to our loop in the end\).
+There seems to be an issue in OSX using such a small stack. The minimum for this code to run is a stack size of 624 bytes . The code works on [Rust Playground](https://play.rust-lang.org/) as written here if you want to follow this exact example \(however you’ll need to wait ~30 seconds for it to time out due to our loop in the end\).
 {% endhint %}
 
 Then lets add a struct that represents our CPU state. We only focus on the register that stores the “stack pointer” for now since that is all we need:
@@ -52,7 +52,7 @@ struct ThreadContext {
 {% endcode-tabs-item %}
 {% endcode-tabs %}
 
-In later examples we will use all the registers marked as “callee saved” in the specification document i linked to. These are the registers described in the x86-64 ABI that we'll need to save our context, but right now we only need one register to make the CPU jump over to our stack.
+In later examples we will use all the registers marked as “callee saved” in the specification document i linked to. These are the registers described in the x86-64 ABI that we’ll need to save our context, but right now we only need one register to make the CPU jump over to our stack.
 
 Note that this needs to be `#[repr(C)]` because we access the data the way we do in our assembly. Rust doesn't have a stable ABI so there is no way for us to be sure that this will be represented in memory with `rsp` as the first 8 bytes. C has a stable ABI and that's exactly what this attribute tells the compiler to use. Granted, our struct only has one field right now but we will add more later.
 
@@ -88,13 +88,13 @@ unsafe fn gt_switch(new: *const ThreadContext) {
 
 We use a trick here. We write the address of the function we want to run on our new stack. Then we pass the address of the first byte where we stored this address to the `rsp` register \(the address we set to `new.rsp` will point to _an address located on our own stack that leads to the function above_\). Got it?
 
-The `ret` keyword transfers program control to the return address located on top of the stack. Since we pushed our address to the `%rsp` register, the CPU will think that is the return address of the function it's currently running so when we pass the `ret`instruction it returns directly into our own stack.
+The `ret` keyword transfers program control to the return address located on top of the stack. Since we pushed our address to the `%rsp` register, the CPU will think that is the return address of the function it’s currently running so when we pass the `ret`instruction it returns directly into our own stack.
 
 The first thing the CPU does is read the address of our function and runs it.
 
 ## Quick introduction to Rusts inline assembly macro
 
-If you haven't used inline assembly before this might look foreign, but we'll use an extended version of this later to switch contexts so I'll explain what we're doing line by line:
+If you haven't used inline assembly before this might look foreign, but we’ll use an extended version of this later to switch contexts so I’ll explain what we're doing line by line:
 
 `unsafe` is a keyword that indicates that Rust cannot enforce the safety guarantees in the function we write. Since we are manipulating the CPU directly this is most definitely unsafe
 
@@ -146,7 +146,7 @@ Inline ASM is a bit different from plain ASM. There are four additional paramete
 {% endcode-tabs-item %}
 {% endcode-tabs %}
 
-The second is our `input` parameter. the `"r"` literal is what is called a `constraint` when writing inline assembly. You can use these constraints to effectively direct where the compiler can decide to put your input \(in one of the registers as a value or use it as a "memory" location for example\). `"r"`simply means that this is put in a general purpose register that the compiler chooses. Constraints in inline assembly is a pretty big subject themselves, fortunately we have pretty simple needs.
+The second is our `input` parameter. the `"r"` literal is what is called a `constraint` when writing inline assembly. You can use these constraints to effectively direct where the compiler can decide to put your input \(in one of the registers as a value or use it as a "memory" location for example\). `"r"` simply means that this is put in a general purpose register that the compiler chooses. Constraints in inline assembly is a pretty big subject themselves, fortunately we have pretty simple needs.
 
 {% code-tabs %}
 {% code-tabs-item title="clobber list" %}
@@ -166,7 +166,7 @@ The next option is the `clobber` list where you specify what registers the compi
 {% endcode-tabs-item %}
 {% endcode-tabs %}
 
-The last one is our `options`. These are unique for Rust and there are three options we can set: `alignstack`, `volatile` and `intel`. I'll refer you [to the documentation to read about them](https://doc.rust-lang.org/unstable-book/language-features/asm.html#options) since they're explained there. Worth noting is that we need to specify the "alignstack" for the code to work on Windows.
+The last one is our `options`. These are unique for Rust and there are three options we can set: `alignstack`, `volatile` and `intel`. I’ll refer you [to the documentation to read about them](https://doc.rust-lang.org/unstable-book/language-features/asm.html#options) since they're explained there. Worth noting is that we need to specify the "alignstack" for the code to work on Windows.
 
 ## Running our example
 
@@ -187,7 +187,7 @@ fn main() {
 So this is actually designing our new stack. `hello` is a pointer already \(a function pointer\) so we can cast it directly as an `u64` since all pointers on 64 bits systems will be, well, 64 bit, and then we write this pointer to our new stack.
 
 {% hint style="info" %}
-We'll talk more about the stack in the next chapter but one thing we need to know already now is that the stack grows downwards. If our 48 byte stack starts at index _0_, and ends on index _47,_ index _32_ will be the first index of a 16 byte offset from the end of our stack.
+We’ll talk more about the stack in the next chapter but one thing we need to know already now is that the stack grows downwards. If our 48 byte stack starts at index _0_, and ends on index _47,_ index _32_ will be the first index of a 16 byte offset from the end of our stack.
 {% endhint %}
 
 Make note that we write the pointer to an the offset of 16 bytes from the base of our stack \(remember what I wrote about 16 byte alignment?\).

@@ -1,6 +1,6 @@
 # Appendix: Supporting Windows
 
-Our example works for both OSX, Linux and Windows, but as I have pointed out, our Windows implementation is not correct even though it's working. Since I've been quite commited to make this work on all three platforms, I'll go through what we need to do in this chapter.
+Our example works for both OSX, Linux and Windows, but as I have pointed out, our Windows implementation is not correct even though it’s working. Since I've been quite commited to make this work on all three platforms, I’ll go through what we need to do in this chapter.
 
 You might wonder why I didn't include this in the original code, and the reason for that is that this is really not at all that relevant for explaining the main concepts I wanted to explore.
 
@@ -11,14 +11,14 @@ The reason I don't consider this important enough to implement in the main examp
 {% hint style="info" %}
 Conditionally compiling this to support windows correctly bloats our code with almost 50 % without adding much to what we need for a basic understanding.
 
-Now that doesn't mean this isn't interesting, on the contrary, but we'll also experience first hand some of the difficulties of supporting multiple platforms when doing everything from scratch.
+Now that doesn't mean this isn't interesting, on the contrary, but we’ll also experience first hand some of the difficulties of supporting multiple platforms when doing everything from scratch.
 {% endhint %}
 
 
 
 ### Additional callee saved \(non-volatile\) registers
 
-The first thing I mentioned is that windows wants to save more data during context switches, in particular the XMM6-XMM15 registers. It's actually [mentioned specifically in the reference](https://docs.microsoft.com/en-us/cpp/build/x64-software-conventions?view=vs-2019#register-usage) so this is just adding more fields to our `ThreadContext`struct. This is very easy now that we've done it once before.
+The first thing I mentioned is that windows wants to save more data during context switches, in particular the XMM6-XMM15 registers. it’s actually [mentioned specifically in the reference](https://docs.microsoft.com/en-us/cpp/build/x64-software-conventions?view=vs-2019#register-usage) so this is just adding more fields to our `ThreadContext`struct. This is very easy now that we've done it once before.
 
 Our ThreadContext now looks like this:
 
@@ -197,12 +197,12 @@ unsafe fn switch(old: *mut ThreadContext, new: *const ThreadContext) {
 }
 ```
 
-As you see, our code gets just a little bit longer. It's not difficult once you've figured out what to store where, but it does add a lot of code.
+As you see, our code gets just a little bit longer. it’s not difficult once you've figured out what to store where, but it does add a lot of code.
 
 {% hint style="warning" %}
-You'll notice I've changed the inline assembly slightly here since I've had some issues with the `=m`constraint and compilation in release mode. This code does the same and our original example will be updated once I figure out a solution to why the code will not run as expected in release builds. 
+You’ll notice I've changed the inline assembly slightly here since I've had some issues with the `=m`constraint and compilation in release mode. This code does the same and our original example will be updated once I figure out a solution to why the code will not run as expected in release builds. 
 
-**Meanwhile I'll explain briefly here:**
+**Meanwhile I’ll explain briefly here:**
 
 We use the`{register}`constraint which tells the compiler to put our input variables into a specific register. The `%rdi`and the `%rsi`registers are not randomly chosen, on Linux systems they are the default registers for the first and second argument in a function call. Not strictly needed but a nice convention even though Windows has different default registers for these arguments \(`%rcx`and `%rdx`\).
 
