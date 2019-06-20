@@ -16,19 +16,19 @@ const MAX_THREADS: usize = 4;
 static mut RUNTIME: usize = 0;
 ```
 
-We enable two features the `asm`feature that we covered earlier, and the `naked_functions`feature, that we need to explain.
+We enable two features the `asm` feature that we covered earlier, and the `naked_functions` feature, that we need to explain.
 
 ### naked\_functions
 
 You see, when Rust compiles a function, it adds a small prologue and epilogue to each function and this causes some issues for us when we switch contexts since we end up with a misaligned stack. This worked fine in our first simple example but once we need to push more functions to the stack we end up with trouble. Marking the a function as `#[naked]`removes the prologue and epilogue and as you will see with some adjustments it makes the code run on both OSX, Linux and Windows.
 
 {% hint style="info" %}
-If you are interested you can read more about the`naked_functions`feature in [RFC \#1201](https://github.com/rust-lang/rfcs/blob/master/text/1201-naked-fns.md)
+If you are interested you can read more about the `naked_functions` feature in [RFC \#1201](https://github.com/rust-lang/rfcs/blob/master/text/1201-naked-fns.md)
 {% endhint %}
 
-Our `DEFAULT_STACK_SIZE`is set to 2 MB which is more than enough for our use. We also set `MAX_THREADS`to 4 since we don't need more for our example.
+Our `DEFAULT_STACK_SIZE` is set to 2 MB which is more than enough for our use. We also set `MAX_THREADS` to 4 since we don't need more for our example.
 
-The last constant `RUNTIME`is a pointer to our runtime \(yeah, I know, it’s not pretty with a mutable global variable but we need it later and we're only setting this variable on runtime initialization\).
+The last constant `RUNTIME` is a pointer to our runtime \(yeah, I know, it’s not pretty with a mutable global variable but we need it later and we're only setting this variable on runtime initialization\).
 
 Let’s start fleshing out something to represent our data:
 
@@ -253,10 +253,10 @@ When we spawn a new thread we first check if there are any available threads \(t
 
 When we find an available thread we get the stack length and a pointer to our `u8` byte-array.
 
-In the next segment we have to use some unsafe functions. First we write the address to our `guard` function that will be called when the task we provide finishes and the function returns. Then we write the address to `f`which is the function we pass inn and want to run.
+In the next segment we have to use some unsafe functions. First we write the address to our `guard` function that will be called when the task we provide finishes and the function returns. Then we write the address to `f` which is the function we pass inn and want to run.
 
 {% hint style="info" %}
-Remember how we explained how the stack works in [The Stack](the-stack.md) chapter. We want the `f` function to be the first to run so we set the base pointer to `f`and make sure it’s 16 byte aligned. We then push the address to `guard`function. This is not 16 byte aligned but when `f` returns the CPU will read the next address as the return address of `f`and resume execution there.
+Remember how we explained how the stack works in [The Stack](the-stack.md) chapter. We want the `f` function to be the first to run so we set the base pointer to `f` and make sure it’s 16 byte aligned. We then push the address to `guard` function. This is not 16 byte aligned but when `f` returns the CPU will read the next address as the return address of `f` and resume execution there.
 {% endhint %}
 
 Third, we set the value of `rsp` which is the stack pointer to the address of our provided function so we start executing that first when we are scheduled to run.
@@ -345,7 +345,7 @@ The `"=*m"` `constraint` on our output parameter is new. As I warned before, inl
 0x18($1) # 24
 ```
 
-I mentioned this briefly, but here you see it in action. These are `hex` numbers indicating the _offset_ from the memory pointer to which we want to read/write. I wrote down the base-10 numbers as comments so you see we only offset the pointer in 8 byte steps which is the same size as the `u64`fields on our `ThreadContext` struct.
+I mentioned this briefly, but here you see it in action. These are `hex` numbers indicating the _offset_ from the memory pointer to which we want to read/write. I wrote down the base-10 numbers as comments so you see we only offset the pointer in 8 byte steps which is the same size as the `u64` fields on our `ThreadContext` struct.
 
 This is also why it’s important to annotate `ThreadContext` with `#[repr(C)]` so we know that the data will be represented in memory this way and we write to the right field. The Rust ABI makes no guarantee that they are represented in the same order in memory, however the C-ABI does.
 

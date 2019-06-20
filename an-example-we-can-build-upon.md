@@ -88,7 +88,7 @@ unsafe fn gt_switch(new: *const ThreadContext) {
 
 We use a trick here. We write the address of the function we want to run on our new stack. Then we pass the address of the first byte where we stored this address to the `rsp` register \(the address we set to `new.rsp` will point to _an address located on our own stack that leads to the function above_\). Got it?
 
-The `ret` keyword transfers program control to the return address located on top of the stack. Since we pushed our address to the `%rsp` register, the CPU will think that is the return address of the function it’s currently running so when we pass the `ret`instruction it returns directly into our own stack.
+The `ret` keyword transfers program control to the return address located on top of the stack. Since we pushed our address to the `%rsp` register, the CPU will think that is the return address of the function it’s currently running so when we pass the `ret` instruction it returns directly into our own stack.
 
 The first thing the CPU does is read the address of our function and runs it.
 
@@ -116,9 +116,9 @@ The first thing the macro takes as input is the assembly template:
 mov     0x00($0), %rsp
 ```
 
-This is a simple instruction that moves the value stored at `0x00` offset \(that means no offset at all in hex\) from the memory location at `$0` to the `rsp`register. Since the `rsp`register stores a pointer to the next value on the stack, we effectively push the address we provide it on top of the current stack overwriting whats already there.
+This is a simple instruction that moves the value stored at `0x00` offset \(that means no offset at all in hex\) from the memory location at `$0` to the `rsp` register. Since the `rsp` register stores a pointer to the next value on the stack, we effectively push the address we provide it on top of the current stack overwriting whats already there.
 
-You will not see `$0` used like this in normal assembly code. This is part of the assembly template and is a placeholder for the first parameter. The parameters are numbered from 0, 1, 2… starting with the `output`parameters and then moving on to the `input`parameters. We only have one input parameter here which corresponds to `$0`.
+You will not see `$0` used like this in normal assembly code. This is part of the assembly template and is a placeholder for the first parameter. The parameters are numbered from 0, 1, 2… starting with the `output` parameters and then moving on to the `input` parameters. We only have one input parameter here which corresponds to `$0`.
 
 If you encounter $ in assembly it most likely means an immediate value \(an integer constant\) but that depends \(yeah, the $ can mean different things between dialects and between x86 assembly and x86-64 assembly\).
 
@@ -126,7 +126,7 @@ If you encounter $ in assembly it most likely means an immediate value \(an inte
 ret
 ```
 
-The `ret`keyword instructs the CPU to pop a memory location off the top of the stack and then makes an unconditional jump to that location. In effect we have hijacked our CPU and made it return to our stack.
+The `ret` keyword instructs the CPU to pop a memory location off the top of the stack and then makes an unconditional jump to that location. In effect we have hijacked our CPU and made it return to our stack.
 
 {% code-tabs %}
 {% code-tabs-item title="output" %}
@@ -194,7 +194,7 @@ Make note that we write the pointer to an the offset of 16 bytes from the base o
 
 We cast it as a pointer to an `u64` instead of a pointer to a `u8`. We want to write to position 32, 33, 34, 35, 36, 37, 38, 39 which is the 8 byte space we need to store our `u64`. If we don't do this cast we try to write an u64 only to position 32 which is not what we want.
 
-We set the `rsp` \(Stack Pointer\) to _the memory address of index 32 in our stack_, we don't pass the value of the `u64`stored at that location but an address to the first byte.
+We set the `rsp` \(Stack Pointer\) to _the memory address of index 32 in our stack_, we don't pass the value of the `u64` stored at that location but an address to the first byte.
 
 When we `cargo run` this code we get:
 

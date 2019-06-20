@@ -18,7 +18,7 @@ Now that doesn't mean this isn't interesting, on the contrary, but we’ll also 
 
 ### Additional callee saved \(non-volatile\) registers
 
-The first thing I mentioned is that windows wants to save more data during context switches, in particular the XMM6-XMM15 registers. it’s actually [mentioned specifically in the reference](https://docs.microsoft.com/en-us/cpp/build/x64-software-conventions?view=vs-2019#register-usage) so this is just adding more fields to our `ThreadContext`struct. This is very easy now that we've done it once before.
+The first thing I mentioned is that windows wants to save more data during context switches, in particular the XMM6-XMM15 registers. it’s actually [mentioned specifically in the reference](https://docs.microsoft.com/en-us/cpp/build/x64-software-conventions?view=vs-2019#register-usage) so this is just adding more fields to our `ThreadContext` struct. This is very easy now that we've done it once before.
 
 Our ThreadContext now looks like this:
 
@@ -100,9 +100,9 @@ struct ThreadContext {
 Notice we use the `#[cfg(target_os="windows")]` attribute here on all the Windows specific functions and structs, which mean we need to give our “original” definitions an attribute that makes sure it compiles them for all other targets than Windows: `[cfg(not(target_os="windows"))].`
 {% endhint %}
 
-I named the fields `stack_start`and `stack_end`since I find that easier to mentally parse since we know the stack starts on the top and grows downwards to the bottom.
+I named the fields `stack_start` and `stack_end` since I find that easier to mentally parse since we know the stack starts on the top and grows downwards to the bottom.
 
-Now to implement this we need to make a change to our `spawn()`function to actually provide this information:
+Now to implement this we need to make a change to our `spawn()` function to actually provide this information:
 
 {% code-tabs %}
 {% code-tabs-item title="spawn" %}
@@ -206,9 +206,9 @@ You’ll notice I've changed the inline assembly slightly here since I've had so
 
 We use the`{register}`constraint which tells the compiler to put our input variables into a specific register. The `%rdi`and the `%rsi`registers are not randomly chosen, on Linux systems they are the default registers for the first and second argument in a function call. Not strictly needed but a nice convention even though Windows has different default registers for these arguments \(`%rcx`and `%rdx`\).
 
-We also use both our arguments as `inputs`, since we don't really have any output from this function we can avoid the `output`register entirely without any need to worry. However we should enable the `volatile`option to indicate that the assembly has side effects.
+We also use both our arguments as `inputs`, since we don't really have any output from this function we can avoid the `output` register entirely without any need to worry. However we should enable the `volatile` option to indicate that the assembly has side effects.
 
-Our inline assembly won't let us `mov`from one memory offset to another memory offset so we need to go via a register. I chose the`rax`register \(the default register for the return value\) but could have chosen any general purpose register for this.
+Our inline assembly won't let us `mov` from one memory offset to another memory offset so we need to go via a register. I chose the `rax` register \(the default register for the return value\) but could have chosen any general purpose register for this.
 {% endhint %}
 
 ### Conclusion
