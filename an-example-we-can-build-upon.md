@@ -24,7 +24,7 @@ In our `main.rs` we start by setting a feature flag that lets us use the `asm!`m
 {% endcode-tabs-item %}
 {% endcode-tabs %}
 
-Lets set a small stack size here, only 48 bytes so we can print the stack and look at it before we switch contexts:
+Let’s set a small stack size here, only 48 bytes so we can print the stack and look at it before we switch contexts:
 
 {% code-tabs %}
 {% code-tabs-item title="main.rs" %}
@@ -38,7 +38,7 @@ const SSIZE: isize = 48;
 There seems to be an issue in OSX using such a small stack. The minimum for this code to run is a stack size of 624 bytes . The code works on [Rust Playground](https://play.rust-lang.org/) as written here if you want to follow this exact example \(however you’ll need to wait ~30 seconds for it to time out due to our loop in the end\).
 {% endhint %}
 
-Then lets add a struct that represents our CPU state. We only focus on the register that stores the “stack pointer” for now since that is all we need:
+Then let’s add a struct that represents our CPU state. We only focus on the register that stores the “stack pointer” for now since that is all we need:
 
 {% code-tabs %}
 {% code-tabs-item title="main.rs" %}

@@ -2,7 +2,7 @@
 
 Before we start I’ll mention that the code we write is quite unsafe and is not a “best practice” when writing Rust code. I want to try to make this as safe as possible without introducing a lot of unneeded complexity, so I encourage you dear reader to suggest a [PR to the projects repo](https://github.com/cfsamson/example-greenthreads) if you see something that could be done a safer way without making our code too complex.
 
-## Lets get going
+## Let’s get going
 
 The first thing we do is to delete our example in our `main.rs`so we start from scratch and add the following.
 
@@ -11,7 +11,7 @@ The first thing we do is to delete our example in our `main.rs`so we start from 
 #![feature(naked_functions)]
 use std::ptr;
 
-const DEFAULT_STACK_SIZE: usize = 1024 * 1024* 2;
+const DEFAULT_STACK_SIZE: usize = 1024 * 1024 * 2;
 const MAX_THREADS: usize = 4;
 static mut RUNTIME: usize = 0;
 ```
