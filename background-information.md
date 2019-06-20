@@ -36,7 +36,7 @@ The AT&T dialect is the standard when writing inline assembly in Rust, but in Ru
 
 _We will use the AT&T dialect in our examples._
 
-Assembly has a strong backwards compatibility guarantee. That’s why you will see that the same registers are addressed in different ways. Lets look at the \`%rax\` register we used as example above for an explanation:
+Assembly has a strong backwards compatibility guarantee. That’s why you will see that the same registers are addressed in different ways. Let's look at the `%rax` register we used as example above for an explanation:
 
 ```text
 %rax    # 64 bit register (8 bytes)
