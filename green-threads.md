@@ -2,7 +2,7 @@
 
 Green threads solve a common problem in programming. You don’t want your code to block the CPU preventing the CPU from doing meaningful work. We solve this by using multitasking, which lets us suspend execution of one piece of code while we resume another and switch between “contexts”.
 
-This is not to be confused with parallelism, while easy to confuse they are two different things. Think of it this way, green threads let’s us work smarter and more efficient and thereby using our resources more efficiently, and parallelism is like throwing more resources at the problem.
+This is not to be confused with parallelism, while easy to confuse they are two different things. Think of it this way, green threads let us work smarter and more efficient and thereby using our resources more efficiently, and parallelism is like throwing more resources at the problem.
 
 Commonly there are two ways to do this.
 
