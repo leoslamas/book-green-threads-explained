@@ -2,7 +2,7 @@
 
 > A stack is nothing more than a piece of contiguous memory.
 
-This is important to know. A computer only has memory, it doesn't have a special "stack" memory and a "heap" memory, it's all part of the same memory. 
+This is important to know. A computer only has memory, it doesn't have a special “stack” memory and a “heap” memory, it's all part of the same memory. 
 
 The difference is how this memory is accessed and used. The stack support simple push/pop instructions on a contiguous part of memory, that's what makes it fast to use. The heap memory is allocated by a memory allocator on demand and can be scattered around in different locations.
 
@@ -86,7 +86,7 @@ I've printed out the memory addresses as u64 here so it's easier to parse if you
 
 The first thing to note is that this is just a contiguous piece of memory, starting at address `94846750517824` and ending on `94846750517871`. 
 
-The addresses `94846750517856`to `94846750517863`is of special interest for us. The first address is the address of our "stack pointer", the value we write to the `%rsp`register of the CPU. The range represents the values we wrote to the stack before we made the switch. 
+The addresses `94846750517856`to `94846750517863`is of special interest for us. The first address is the address of our “stack pointer”, the value we write to the `%rsp`register of the CPU. The range represents the values we wrote to the stack before we made the switch. 
 
 In other words the values `240, 205, 252, 56, 67, 86, 0, 0` is the pointer to our `hello()`function written as `u8`values.
 
@@ -98,7 +98,7 @@ As we write more complex functions our extremely small 48 byte stack will soon r
 
 ### Stack sizes
 
-When you start a process in most modern operating systems the standard stack size is normally 8 MB but it can be configured differently, this is enough for most programs but it's up to the programmer to make sure we don't use more than we have. This is the cause of the dreaded "Stack overflow" that most of us have experienced.
+When you start a process in most modern operating systems the standard stack size is normally 8 MB but it can be configured differently, this is enough for most programs but it's up to the programmer to make sure we don't use more than we have. This is the cause of the dreaded “stack overflow” that most of us have experienced.
 
 However, when we can control the stacks ourselves we can choose the size we want. 8 MB for each context is way more than we need when running simple functions in a web server for example, so by reducing the stack size we can have millions of Green Threads running on a machine, while we run out of memory a lot sooner using stacks provided by the operating system.
 

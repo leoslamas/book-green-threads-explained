@@ -1,6 +1,6 @@
 # An implementation of green threads
 
-Before we start I'll mention that the code we write is quite unsafe and is not a "best practice" when writing Rust code. I want to try to make this as safe as possible without introducing a lot of unneeded complexity, so I encourage you dear reader to suggest a [PR to the projects repo](https://github.com/cfsamson/example-greenthreads) if you see something that could be done a safer way without making our code too complex.
+Before we start I'll mention that the code we write is quite unsafe and is not a “best practice” when writing Rust code. I want to try to make this as safe as possible without introducing a lot of unneeded complexity, so I encourage you dear reader to suggest a [PR to the projects repo](https://github.com/cfsamson/example-greenthreads) if you see something that could be done a safer way without making our code too complex.
 
 ## Lets get going
 
@@ -78,7 +78,7 @@ struct ThreadContext {
 `ThreadContext` holds data for the registers that CPU needs to resume execution on a stack.
 
 {% hint style="info" %}
-Go back to the chapter [Background Information](background-information.md) to read about the registers if you don't remember. These are the registers marked as "callee saved" in the specification of the x86-64 architecture.
+Go back to the chapter [Background Information](background-information.md) to read about the registers if you don't remember. These are the registers marked as “callee saved” in the specification of the x86-64 architecture.
 {% endhint %}
 
 Let's move on:
@@ -261,7 +261,7 @@ Remember how we explained how the stack works in [The Stack](the-stack.md) chapt
 
 Third, we set the value of `rsp` which is the stack pointer to the address of our provided function so we start executing that first when we are scheduled to run.
 
-Lastly we set the state as `Ready` which means we have work to do and that we are ready to do it. Remember, it's up to our "scheduler" to actually start up this thread.
+Lastly we set the state as `Ready` which means we have work to do and that we are ready to do it. Remember, it's up to our “scheduler” to actually start up this thread.
 
 We're now finished implementing our `Runtime`, if you got all this you basically understand _how_ green threads work. However there are still a few details needed to implement them.
 
@@ -326,7 +326,7 @@ unsafe fn switch(old: *mut ThreadContext, new: *const ThreadContext) {
 }
 ```
 
-So here is our inline Assembly. As you remember from our first example this is just a bit more elaborate where we first read out the values of all the registers we need and then sets all the register values to the register values we saved when we suspended execution on the "new" thread.
+So here is our inline Assembly. As you remember from our first example this is just a bit more elaborate where we first read out the values of all the registers we need and then sets all the register values to the register values we saved when we suspended execution on the “new” thread.
 
 This is essentially all we need to do to save and resume execution.
 

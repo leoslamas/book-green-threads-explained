@@ -38,7 +38,7 @@ const SSIZE: isize = 48;
 There seems to be an issue in OSX using such a small stack. The minimum for this code to run is a stack size of 624 bytes . The code works on [Rust Playground](https://play.rust-lang.org/) as written here if you want to follow this exact example \(however you'll need to wait ~30 seconds for it to time out due to our loop in the end\).
 {% endhint %}
 
-Then lets add a struct that represents our CPU state. We only focus on the register that stores the "stack pointer" for now since that is all we need:
+Then lets add a struct that represents our CPU state. We only focus on the register that stores the “stack pointer” for now since that is all we need:
 
 {% code-tabs %}
 {% code-tabs-item title="main.rs" %}
@@ -52,7 +52,7 @@ struct ThreadContext {
 {% endcode-tabs-item %}
 {% endcode-tabs %}
 
-In later examples we will use all the registers marked as "callee saved" in the specification document i linked to. These are the registers described in the x86-64 ABI that we'll need to save our context, but right now we only need one register to make the CPU jump over to our stack.
+In later examples we will use all the registers marked as “callee saved” in the specification document i linked to. These are the registers described in the x86-64 ABI that we'll need to save our context, but right now we only need one register to make the CPU jump over to our stack.
 
 Note that this needs to be `#[repr(C)]` because we access the data the way we do in our assembly. Rust doesn't have a stable ABI so there is no way for us to be sure that this will be represented in memory with `rsp` as the first 8 bytes. C has a stable ABI and that's exactly what this attribute tells the compiler to use. Granted, our struct only has one field right now but we will add more later.
 

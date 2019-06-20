@@ -11,7 +11,7 @@ Commonly there are two ways to do this:
 
 #### Preemptive multitasking
 
-Some external scheduler stops a task and runs another before switching back. The task has nothing to say in this matter, the decision is made by "something" else \(often some sort of scheduler\). Kernels use this in operating systems, i.e. to allow you to use the UI while running the CPU to do calculations on single threaded systems. We’ll not talk about this kind of threading now, but my guess is that when you understand one paradigm you’ll have a good grasp on both.
+Some external scheduler stops a task and runs another before switching back. The task has nothing to say in this matter, the decision is made by “something” else \(often some sort of scheduler\). Kernels use this in operating systems, i.e. to allow you to use the UI while running the CPU to do calculations on single threaded systems. We’ll not talk about this kind of threading now, but my guess is that when you understand one paradigm you’ll have a good grasp on both.
 
 #### Non-preemptive multitasking
 
