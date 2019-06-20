@@ -42,7 +42,7 @@ You don’t have to be a Rust programmer to understand this article but it is hi
 
 ## Following along
 
-All the code I provide here is in a single file and has no dependencies which means that you can easily start your own project and follow along if you want to \(i suggest you do\). You can even run most of the code in the [Rust playground](https://play.rust-lang.org). Just remember to use the `nightly`version of the compiler.
+All the code I provide here is in a single file and has no dependencies which means that you can easily start your own project and follow along if you want to \(I suggest you do\). You can even run most of the code in the [Rust playground](https://play.rust-lang.org). Just remember to use the `nightly`version of the compiler.
 
 ## Portability and issues
 
@@ -65,4 +65,3 @@ However, if you spot places where I can make the code safer without making it si
 ## Edits
 
 2019-06-18: New chapter implementing a proper Windows support
-
