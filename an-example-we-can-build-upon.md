@@ -118,7 +118,7 @@ mov     0x00($0), %rsp
 
 This is a simple instruction that moves the value stored at `0x00` offset \(that means no offset at all in hex\) from the memory location at `$0` to the `rsp`register. Since the `rsp`register stores a pointer to the next value on the stack, we effectively push the address we provide it on top of the current stack overwriting whats already there.
 
-You will not see `$0` used like this in normal assembly code. This is part of the assembly template and is a placeholder for the first parameter. The parameters are numbered from 0, 1, 2... starting with the `output`parameters and then moving on to the `input`parameters. We only have one input parameter here which corresponds to `$0`.
+You will not see `$0` used like this in normal assembly code. This is part of the assembly template and is a placeholder for the first parameter. The parameters are numbered from 0, 1, 2… starting with the `output`parameters and then moving on to the `input`parameters. We only have one input parameter here which corresponds to `$0`.
 
 If you encounter $ in assembly it most likely means an immediate value \(an integer constant\) but that depends \(yeah, the $ can mean different things between dialects and between x86 assembly and x86-64 assembly\).
 
