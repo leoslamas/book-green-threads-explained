@@ -4,7 +4,7 @@ Before we start I’ll mention that the code we write is quite unsafe and is not
 
 ## Let’s get going
 
-The first thing we do is to delete our example in our `main.rs`so we start from scratch and add the following.
+The first thing we do is to delete our example in our `main.rs`so we start from scratch and add the following:
 
 ```rust
 #![feature(asm)]
