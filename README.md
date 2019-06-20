@@ -46,7 +46,7 @@ All the code I provide here is in a single file and has no dependencies which me
 
 ## Portability and issues
 
-Currently there is an issue I have with the `asm!`macro that doesn't compile in release mode. It seems to be related to the `"=m"`constraint I use in the inline macro. Even though we could work around this, I don't consider that a big problem since this is only an example.
+Currently there is an issue I have with the `asm!`macro that doesn't compile in release mode. It seems to be related to the `"=m"`constraint I use in the inline macro. Even though we could work around this, I don’t consider that a big problem since this is only an example.
 
 I've filed an issue about it in the Rust repo, so we’ll wait and see if we get a fix for it.
 

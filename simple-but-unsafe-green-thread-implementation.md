@@ -26,7 +26,7 @@ You see, when Rust compiles a function, it adds a small prologue and epilogue to
 If you are interested you can read more about the `naked_functions` feature in [RFC \#1201](https://github.com/rust-lang/rfcs/blob/master/text/1201-naked-fns.md)
 {% endhint %}
 
-Our `DEFAULT_STACK_SIZE` is set to 2 MB which is more than enough for our use. We also set `MAX_THREADS` to 4 since we don't need more for our example.
+Our `DEFAULT_STACK_SIZE` is set to 2 MB which is more than enough for our use. We also set `MAX_THREADS` to 4 since we don’t need more for our example.
 
 The last constant `RUNTIME` is a pointer to our runtime \(yeah, I know, it’s not pretty with a mutable global variable but we need it later and we're only setting this variable on runtime initialization\).
 
@@ -78,7 +78,7 @@ struct ThreadContext {
 `ThreadContext` holds data for the registers that CPU needs to resume execution on a stack.
 
 {% hint style="info" %}
-Go back to the chapter [Background Information](background-information.md) to read about the registers if you don't remember. These are the registers marked as “callee saved” in the specification of the x86-64 architecture.
+Go back to the chapter [Background Information](background-information.md) to read about the registers if you don’t remember. These are the registers marked as “callee saved” in the specification of the x86-64 architecture.
 {% endhint %}
 
 Let’s move on:
@@ -139,7 +139,7 @@ Then we instantiate the rest of the threads and set the current thread to `0` wh
 
 ```rust
     /// This is cheating a bit, but we need a pointer to our Runtime 
-    /// stored so we can call yield on it even if we don't have a 
+    /// stored so we can call yield on it even if we don’t have a 
     /// reference to it.
     pub fn init(&self) {
         unsafe {
@@ -149,7 +149,7 @@ Then we instantiate the rest of the threads and set the current thread to `0` wh
     }
 ```
 
-Right now we need this. As I mentioned when going through our constants we need this to be able to call `yield` later on. it’s not pretty, but we know that our runtime will be alive as long as there is any thread to `yield` so as long as we don't abuse this it’s safe to do.
+Right now we need this. As I mentioned when going through our constants we need this to be able to call `yield` later on. it’s not pretty, but we know that our runtime will be alive as long as there is any thread to `yield` so as long as we don’t abuse this it’s safe to do.
 
 ```rust
     pub fn run(&mut self) -> ! {
@@ -171,7 +171,7 @@ This is where we start running our run-time. It will continually call `t_yield()
 
 This is our return function that we call when the thread is finished. `return` is another reserved keyword in Rust so we name this `t_return()`. Make a note that the _user_ of our threads does not call this, we set up our stack so this is called when the task is done.
 
-If the calling thread is the `base_thread` we don't do anything. Our runtime will call `yield` for us on the base thread. If it’s called from a spawned thread we know it’s finished since all threads have a `guard` function on top of their stack \(which we’ll show further down\) and the only place this function is called is on our `guard` function.
+If the calling thread is the `base_thread` we don’t do anything. Our runtime will call `yield` for us on the base thread. If it’s called from a spawned thread we know it’s finished since all threads have a `guard` function on top of their stack \(which we’ll show further down\) and the only place this function is called is on our `guard` function.
 
 We set its state to `Available` letting the runtime know it’s ready to be assigned a new task and then immediately call `t_yield` which will schedule a new thread to be run.
 
@@ -219,7 +219,7 @@ This is a very naive implementation tailor made for our example. What happens if
 it’s not too difficult to work around this, instead of running our code directly when a thread is `Ready` we could instead poll it for a status. For example it could return `IsReady` if it’s really ready to run or `Pending` if it’s waiting for some operation to finish. In the latter case we could just leave it in it’s `Ready` state to get polled again later. Does this sound familiar? If you've read about how [Futures](https://rust-lang-nursery.github.io/futures-api-docs/0.3.0-alpha.16/futures/task/enum.Poll.html#variant.Pending) work in Rust, we are starting to connect some dots on how this all fits together.
 {% endhint %}
 
-If we find a thread that's ready to be run we change the state of the current thread from `Running` to `Ready`.
+If we find a thread that’s ready to be run we change the state of the current thread from `Running` to `Ready`.
 
 Then we call `switch` which will save the current context \(the old context\) and load the new context into the CPU. The new context is either a new task, or all the information the CPU needs to resume work on an existing task.
 
@@ -279,7 +279,7 @@ fn guard() {
 }
 ```
 
-Here we meet our first portability issue. `[cfg_attr(any(target_os="windows", target_os="linux"), naked)]` is a conditional compilation attribute. If the target OS is Windows or Linux we compile this function with the `#[naked]`attribute, if not we don't compile it with the attribute. This way the code runs fine on Windows, the [Rust Playground](https://play.rust-lang.org/?version=nightly&mode=debug&edition=2018&gist=5fecced06eda366283ed34cbbfbd2903) and on my mac.
+Here we meet our first portability issue. `[cfg_attr(any(target_os="windows", target_os="linux"), naked)]` is a conditional compilation attribute. If the target OS is Windows or Linux we compile this function with the `#[naked]`attribute, if not we don’t compile it with the attribute. This way the code runs fine on Windows, the [Rust Playground](https://play.rust-lang.org/?version=nightly&mode=debug&edition=2018&gist=5fecced06eda366283ed34cbbfbd2903) and on my mac.
 
 The function means that the function we passed in has returned and that means our thread is finished running its task so we de-reference our `Runtime` and call `t_return()`. We could have made a function that does some additional work when a thread is finished but right now our `t_return()` function does all we need. It marks our thread as `Available` \(if it’s not our base thread\) and `yields` so we can resume work on a different thread.
 

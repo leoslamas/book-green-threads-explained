@@ -54,7 +54,7 @@ struct ThreadContext {
 
 In later examples we will use all the registers marked as “callee saved” in the specification document i linked to. These are the registers described in the x86-64 ABI that we’ll need to save our context, but right now we only need one register to make the CPU jump over to our stack.
 
-Note that this needs to be `#[repr(C)]` because we access the data the way we do in our assembly. Rust doesn't have a stable ABI so there is no way for us to be sure that this will be represented in memory with `rsp` as the first 8 bytes. C has a stable ABI and that's exactly what this attribute tells the compiler to use. Granted, our struct only has one field right now but we will add more later.
+Note that this needs to be `#[repr(C)]` because we access the data the way we do in our assembly. Rust doesn't have a stable ABI so there is no way for us to be sure that this will be represented in memory with `rsp` as the first 8 bytes. C has a stable ABI and that’s exactly what this attribute tells the compiler to use. Granted, our struct only has one field right now but we will add more later.
 
 {% code-tabs %}
 {% code-tabs-item title="main.rs" %}
@@ -156,7 +156,7 @@ The second is our `input` parameter. the `"r"` literal is what is called a `cons
 {% endcode-tabs-item %}
 {% endcode-tabs %}
 
-The next option is the `clobber` list where you specify what registers the compiler should not touch and let it know we want to manage these in our assembly code. If we pop any values of the stack we need to specify what registers here and let the compiler know so it know it can't use these registers freely. We don't need that here since we return to a brand new stack.
+The next option is the `clobber` list where you specify what registers the compiler should not touch and let it know we want to manage these in our assembly code. If we pop any values of the stack we need to specify what registers here and let the compiler know so it know it can't use these registers freely. We don’t need that here since we return to a brand new stack.
 
 {% code-tabs %}
 {% code-tabs-item title="options" %}
@@ -192,9 +192,9 @@ We’ll talk more about the stack in the next chapter but one thing we need to k
 
 Make note that we write the pointer to an the offset of 16 bytes from the base of our stack \(remember what I wrote about 16 byte alignment?\).
 
-We cast it as a pointer to an `u64` instead of a pointer to a `u8`. We want to write to position 32, 33, 34, 35, 36, 37, 38, 39 which is the 8 byte space we need to store our `u64`. If we don't do this cast we try to write an u64 only to position 32 which is not what we want.
+We cast it as a pointer to an `u64` instead of a pointer to a `u8`. We want to write to position 32, 33, 34, 35, 36, 37, 38, 39 which is the 8 byte space we need to store our `u64`. If we don’t do this cast we try to write an u64 only to position 32 which is not what we want.
 
-We set the `rsp` \(Stack Pointer\) to _the memory address of index 32 in our stack_, we don't pass the value of the `u64` stored at that location but an address to the first byte.
+We set the `rsp` \(Stack Pointer\) to _the memory address of index 32 in our stack_, we don’t pass the value of the `u64` stored at that location but an address to the first byte.
 
 When we `cargo run` this code we get:
 

@@ -6,7 +6,7 @@ You might wonder why I didn't include this in the original code, and the reason 
 
 ### What's special with Windows
 
-The reason I don't consider this important enough to implement in the main example is that that windows has more `callee saved` registers, or `non-volatile`registers as they call it in addition to one rather poorly documented quirk that we need to account for, so what we really do is just to save more data when we do the context switch and that needs more conditional compilation.
+The reason I don’t consider this important enough to implement in the main example is that that windows has more `callee saved` registers, or `non-volatile`registers as they call it in addition to one rather poorly documented quirk that we need to account for, so what we really do is just to save more data when we do the context switch and that needs more conditional compilation.
 
 {% hint style="info" %}
 Conditionally compiling this to support windows correctly bloats our code with almost 50 % without adding much to what we need for a basic understanding.
@@ -18,7 +18,7 @@ Now that doesn't mean this isn't interesting, on the contrary, but we’ll also 
 
 ### Additional callee saved \(non-volatile\) registers
 
-The first thing I mentioned is that windows wants to save more data during context switches, in particular the XMM6-XMM15 registers. it’s actually [mentioned specifically in the reference](https://docs.microsoft.com/en-us/cpp/build/x64-software-conventions?view=vs-2019#register-usage) so this is just adding more fields to our `ThreadContext` struct. This is very easy now that we've done it once before.
+The first thing I mentioned is that windows wants to save more data during context switches, in particular the XMM6-XMM15 registers. it’s actually [mentioned specifically in the reference](https://docs.microsoft.com/en-us/cpp/build/x64-software-conventions?view=vs-2019#register-usage) so this is just adding more fields to our `ThreadContext` struct. This is very easy now that we’ve done it once before.
 
 Our ThreadContext now looks like this:
 
@@ -206,18 +206,18 @@ You’ll notice I've changed the inline assembly slightly here since I've had so
 
 We use the`{register}`constraint which tells the compiler to put our input variables into a specific register. The `%rdi`and the `%rsi`registers are not randomly chosen, on Linux systems they are the default registers for the first and second argument in a function call. Not strictly needed but a nice convention even though Windows has different default registers for these arguments \(`%rcx`and `%rdx`\).
 
-We also use both our arguments as `inputs`, since we don't really have any output from this function we can avoid the `output` register entirely without any need to worry. However we should enable the `volatile` option to indicate that the assembly has side effects.
+We also use both our arguments as `inputs`, since we don’t really have any output from this function we can avoid the `output` register entirely without any need to worry. However we should enable the `volatile` option to indicate that the assembly has side effects.
 
 Our inline assembly won't let us `mov` from one memory offset to another memory offset so we need to go via a register. I chose the `rax` register \(the default register for the return value\) but could have chosen any general purpose register for this.
 {% endhint %}
 
 ### Conclusion
 
-So this is all we needed to do. As you see we don't really do anything new here, the difficult part is figuring out how Windows works and what it expects, but now that we have done our job properly we should have a pretty complete context switch for all three platforms.
+So this is all we needed to do. As you see we don’t really do anything new here, the difficult part is figuring out how Windows works and what it expects, but now that we have done our job properly we should have a pretty complete context switch for all three platforms.
 
 ### Final code
 
-I've collected all the code we need to compile differently for Windows at the bottom so you don't have to read the first 200 lines of code since that is unchanged from what we in the previous chapters. I hope you understand why I chose to dedicate a separate chapter for this.
+I've collected all the code we need to compile differently for Windows at the bottom so you don’t have to read the first 200 lines of code since that is unchanged from what we in the previous chapters. I hope you understand why I chose to dedicate a separate chapter for this.
 
 ```rust
 #![feature(asm)]
