@@ -20,7 +20,7 @@ We enable two features the `asm`feature that we covered earlier, and the `naked_
 
 ### naked\_functions
 
-You see, when Rust compiles a function, it adds a small prologue and epilogue to each function and this causes some issues for us when we switch contexts since we end up with a misaligned stack. This worked fine in our first simple example but once we need to push more functions to the stack we end up with trouble. Marking the a function as `#[naked]`removes the prologue and epilogue and as you will see with some adjustments it makes the code run on both OSX, Linux and Windows.
+You see, when Rust compiles a function, it adds a small prologue and epilogue to each function and this causes some issues for us when we switch contexts since we end up with a misaligned stack. This worked fine in our first simple example but once we need to switch back to the same stack again we en up in trouble. Marking the a function as `#[naked]`removes the prologue and epilogue. This attribute is mostly used in relation to inline assembly.
 
 {% hint style="info" %}
 If you are interested you can read more about the`naked_functions`feature in [RFC \#1201](https://github.com/rust-lang/rfcs/blob/master/text/1201-naked-fns.md)
@@ -271,7 +271,6 @@ We're now finished implementing our `Runtime`, if you got all this you basically
 ## Guard and switch functions
 
 ```rust
-#[cfg_attr(target_os = "windows", naked)]
 fn guard() {
     unsafe {
         let rt_ptr = RUNTIME as *mut Runtime;
@@ -279,8 +278,6 @@ fn guard() {
     };
 }
 ```
-
-Here we meet our first portability issue. `[cfg_attr(target_os = "windows", naked)]` is a conditional compilation attribute. If the target OS is Windows we compile this function with the `#[naked]`attribute, if not we don't compile it with the attribute. This way the code runs fine on Windows, the [Rust Playground](https://play.rust-lang.org/?version=nightly&mode=debug&edition=2018&gist=5fecced06eda366283ed34cbbfbd2903) and on my mac.
 
 The function means that the function we passed in has returned and that means our thread is finished running its task so we de-reference our `Runtime` and call `t_return()`. We could have made a function that does some additional work when a thread is finished but right now our `t_return()` function does all we need. It marks our thread as `Available` \(if it's not our base thread\) and `yields` so we can resume work on a different thread.
 
@@ -331,13 +328,15 @@ So here is our inline Assembly. As you remember from our first example this is j
 
 This is essentially all we need to do to save and resume execution.
 
+Here we see the `#[naked]`attribute used. We don't want Rust to generate a prologue and epilogue for our function since this is all assembly and we want to handle everything ourselves. If we don't include this we will fail to switch back to our stack the second time.
+
 {% hint style="info" %}
 Most of this inline assembly is explained in the end of the chapter [An example we can build upon](an-example-we-can-build-upon.md) so if this seems foreign to you, go and read that part of the chapter and come back.
 {% endhint %}
 
 There are two things in this function that differs from our first function:
 
-The first is the attribute `#[inline(never)]`, this attribute prevents the compiler from inlining this function. I spent some time figuring this out, but the code will fail when running on `--release`builds if we don't include it. 
+The first is the attribute `#[inline(never)]`, this attribute prevents the compiler from `inlining` this function. I spent some time figuring this out, but the code will fail when running on `--release`builds if we don't include it. 
 
 The `"volatile"` `option` is new. As I warned before, inline assembly can be a bit gnarly, but this indicates that our assembly has side effects. When changing input parameters we need to make sure the compiler knows that we are changing one of the parameters passed in and not only reading from them.
 

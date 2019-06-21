@@ -4,17 +4,25 @@ Our example works for both OSX, Linux and Windows, but as I have pointed out, ou
 
 You might wonder why I didn't include this in the original code, and the reason for that is that this is really not at all that relevant for explaining the main concepts I wanted to explore.
 
+{% hint style="warning" %}
+Here I'm trying to go a bit further here to explore how we should set up the stack for Windows correct way and do a proper context switch. Even though we might not get all the way to a perfect implementation, there is plenty of information and references for you to explore further and I'll list some of them here:
+
+* [Microsofts x64 software conventions](https://docs.microsoft.com/en-us/cpp/build/x64-software-conventions?view=vs-2019)
+* [Win64/AMD64 API](https://wiki.lazarus.freepascal.org/Win64/AMD64_API) - nice summary of differences between psABi and Win64
+* [Handmade Coroutines for Windows](https://probablydance.com/2013/02/20/handmade-coroutines-for-windows/) - a very good read about a coroutine implementation
+{% endhint %}
+
 ### What's special with Windows
 
-The reason I don't consider this important enough to implement in the main example is that that windows has more `callee saved` registers, or `non-volatile`registers as they call it in addition to one rather poorly documented quirk that we need to account for, so what we really do is just to save more data when we do the context switch and that needs more conditional compilation.
+The reason I don't consider this important enough to implement in the main example is that that windows has more `callee saved` registers, or `non-volatile`registers as they call it in addition to a slightly different stack layout.  There is also one rather poorly documented quirk with how Windows uses the segment registers to store some information that we'll need that we need to account for too.
+
+Most of what we really do is just to save more data when we do the context switch and that needs more conditional compilation, and it doesn't really add much to our goal of a basic understanding of green threads and context switches, but since we're in the rabbit hole we should dig just a bit deeper before we stop.
 
 {% hint style="info" %}
 Conditionally compiling this to support windows correctly bloats our code with almost 50 % without adding much to what we need for a basic understanding.
 
 Now that doesn't mean this isn't interesting, on the contrary, but we'll also experience first hand some of the difficulties of supporting multiple platforms when doing everything from scratch.
 {% endhint %}
-
-
 
 ### Additional callee saved \(non-volatile\) registers
 
@@ -102,12 +110,32 @@ Notice we use the `#[cfg(target_os="windows")]` attribute here on all the Window
 
 I named the fields `stack_start`and `stack_end`since I find that easier to mentally parse since we know the stack starts on the top and grows downwards to the bottom.
 
-Now to implement this we need to make a change to our `spawn()`function to actually provide this information:
+### The Windows stack
+
+The windows stack should look like this:
+
+![https://docs.microsoft.com/en-us/cpp/build/stack-usage?view=vs-2019\#stack-allocation](.gitbook/assets/image%20%281%29.png)
+
+If you read the reference you'll find this additional information about the "register parameter stack area" :
+
+> A function's prolog is responsible for allocating stack space for local variables, saved registers, stack parameters, and register parameters. The parameter area is always at the bottom of the stack \(even if `alloca` is used\), so that it will always be adjacent to the return address during any function call.
+
+So, and this is my understanding, not 100 % verified to be true \(hopefully I can get this verified soon\), our `guard`function does have a prologue and on Windows it will assume that there is space for at least 4 parameter entries. We know our guard function takes no parameters, and no user can add a different function. We can then safely assume that the code Rust generate might rely on space for 1 return address and 4 entries on the bottom of it's stack.
+
+As we know by now, the stack grows downwards so we need to make sure there is at least 40 bytes of space controlled by us "below" the `guard`function. The next 16 byte aligned position for is `stack_size - 64`so we put our base pointer there.
+
+{% hint style="info" %}
+Why did our code run in our first example? Again, I have to make some assumptions here, in our first examples we only put one function on our stack that never returned and took zero parameters. In the second example we put our function on the stack and a return address. Now this time we had to make our `switch`function naked for it to work but our `guard`function still took no parameters and never returned. 
+
+Remember it either switched to a different context or killed the process when finished. That made our code work, in that specific example. 
+{% endhint %}
+
+Now to implement this we need to make a change to our `spawn()`function to actually provide this information and set up our stack.
 
 {% code-tabs %}
 {% code-tabs-item title="spawn" %}
 ```rust
-    #[cfg(target_os="windows")]
+    #[cfg(target_os = "windows")]
     pub fn spawn(&mut self, f: fn()) {
         let available = self
             .threads
@@ -117,16 +145,19 @@ Now to implement this we need to make a change to our `spawn()`function to actua
 
         let size = available.stack.len();
         let s_ptr = available.stack.as_mut_ptr();
+
+        // see: https://docs.microsoft.com/en-us/cpp/build/stack-usage?view=vs-2019#stack-allocation
         unsafe {
-            ptr::write(s_ptr.offset((size - 8) as isize) as *mut u64, guard as u64);
-            ptr::write(s_ptr.offset((size - 16) as isize) as *mut u64, f as u64);
-            available.ctx.rsp = s_ptr.offset((size - 16) as isize) as u64;
+            ptr::write(s_ptr.offset((size - 56) as isize) as *mut u64, guard as u64);
+            ptr::write(s_ptr.offset((size - 64) as isize) as *mut u64, f as u64);
+            available.ctx.rsp = s_ptr.offset((size - 64) as isize) as u64;
             available.ctx.stack_start = s_ptr.offset(size as isize) as u64;
         }
         available.ctx.stack_end = s_ptr as *const u64 as u64;
 
         available.state = State::Ready;
     }
+}
 ```
 {% endcode-tabs-item %}
 {% endcode-tabs %}
@@ -136,78 +167,68 @@ As you see we provide a pointer to the start of our stack and a pointer to the e
 Last we need to change our `swtich()`function and update our assembly:
 
 ```rust
-#[cfg(target_os="windows")]
+#[cfg(target_os = "windows")]
 #[naked]
+#[inline(never)]
 unsafe fn switch(old: *mut ThreadContext, new: *const ThreadContext) {
     asm!("
-        mov     $0, %rdi
-        mov     %rsp, 0x00(%rdi)
-        mov     %r15, 0x08(%rdi)
-        mov     %r14, 0x10(%rdi)
-        mov     %r13, 0x18(%rdi)
-        mov     %r12, 0x20(%rdi)
-        mov     %rbx, 0x28(%rdi)
-        mov     %rbp, 0x30(%rdi)
-        mov     %xmm6, 0x38(%rdi)
-        mov     %xmm7, 0x40(%rdi)
-        mov     %xmm8, 0x48(%rdi)
-        mov     %xmm9, 0x50(%rdi)
-        mov     %xmm10, 0x58(%rdi)
-        mov     %xmm11, 0x60(%rdi)
-        mov     %xmm12, 0x68(%rdi)
-        mov     %xmm13, 0x70(%rdi)
-        mov     %xmm14, 0x78(%rdi)
-        mov     %xmm15, 0x80(%rdi)
-        mov     %gs:0x08, %rax     # windows support
-        mov     %rax, 0x88(%rdi)   # windows support
-        mov     %gs:0x10, %rax     # windows support
-        mov     %rax, 0x90(%rdi)   # windows support
+        mov     %rsp, 0x00($0)
+        mov     %r15, 0x08($0)
+        mov     %r14, 0x10($0)
+        mov     %r13, 0x18($0)
+        mov     %r12, 0x20($0)
+        mov     %rbx, 0x28($0)
+        mov     %rbp, 0x30($0)
+        mov     %xmm6, 0x38($0)
+        mov     %xmm7, 0x40($0)
+        mov     %xmm8, 0x48($0)
+        mov     %xmm9, 0x50($0)
+        mov     %xmm10, 0x58($0)
+        mov     %xmm11, 0x60($0)
+        mov     %xmm12, 0x68($0)
+        mov     %xmm13, 0x70($0)
+        mov     %xmm14, 0x78($0)
+        mov     %xmm15, 0x80($0)
+        mov     %gs:0x08, %rax    
+        mov     %rax, 0x88($0)  
+        mov     %gs:0x10, %rax    
+        mov     %rax, 0x90($0)  
 
-        mov     $1, %rsi
-        mov     0x00(%rsi), %rsp
-        mov     0x08(%rsi), %r15
-        mov     0x10(%rsi), %r14
-        mov     0x18(%rsi), %r13
-        mov     0x20(%rsi), %r12
-        mov     0x28(%rsi), %rbx
-        mov     0x30(%rsi), %rbp
-        mov     0x38(%rsi), %xmm6
-        mov     0x40(%rsi), %xmm7
-        mov     0x48(%rsi), %xmm8
-        mov     0x50(%rsi), %xmm9
-        mov     0x58(%rsi), %xmm10
-        mov     0x60(%rsi), %xmm11
-        mov     0x68(%rsi), %xmm12
-        mov     0x70(%rsi), %xmm13
-        mov     0x78(%rsi), %xmm14
-        mov     0x80(%rsi), %xmm15
-        mov     0x88(%rsi), %rax   # windows support
-        mov     %rax, %gs:0x08     # windows support
-        mov     0x90(%rsi), %rax   # windows support 
-        mov     %rax, %gs:0x10     # windows support
+        mov     0x00($1), %rsp
+        mov     0x08($1), %r15
+        mov     0x10($1), %r14
+        mov     0x18($1), %r13
+        mov     0x20($1), %r12
+        mov     0x28($1), %rbx
+        mov     0x30($1), %rbp
+        mov     0x38($1), %xmm6
+        mov     0x40($1), %xmm7
+        mov     0x48($1), %xmm8
+        mov     0x50($1), %xmm9
+        mov     0x58($1), %xmm10
+        mov     0x60($1), %xmm11
+        mov     0x68($1), %xmm12
+        mov     0x70($1), %xmm13
+        mov     0x78($1), %xmm14
+        mov     0x80($1), %xmm15
+        mov     0x88($1), %rax
+        mov     %rax, %gs:0x08  
+        mov     0x90($1), %rax 
+        mov     %rax, %gs:0x10  
 
         ret
         "
     :
-    :"{rdi}"(old), "{rsi}"(new)
-    : 
+    :"r"(old), "r"(new)
+    :
     : "volatile", "alignstack"
     );
-
 }
 ```
 
 As you see, our code gets just a little bit longer. It's not difficult once you've figured out what to store where, but it does add a lot of code.
 
 {% hint style="warning" %}
-You'll notice I've changed the inline assembly slightly here since I've had some issues with the `=m`constraint and compilation in release mode. This code does the same and our original example will be updated once I figure out a solution to why the code will not run as expected in release builds. 
-
-**Meanwhile I'll explain briefly here:**
-
-We use the`{register}`constraint which tells the compiler to put our input variables into a specific register. The `%rdi`and the `%rsi`registers are not randomly chosen, on Linux systems they are the default registers for the first and second argument in a function call. Not strictly needed but a nice convention even though Windows has different default registers for these arguments \(`%rcx`and `%rdx`\).
-
-We also use both our arguments as `inputs`, since we don't really have any output from this function we can avoid the `output`register entirely without any need to worry. However we should enable the `volatile`option to indicate that the assembly has side effects.
-
 Our inline assembly won't let us `mov`from one memory offset to another memory offset so we need to go via a register. I chose the`rax`register \(the default register for the return value\) but could have chosen any general purpose register for this.
 {% endhint %}
 
@@ -247,9 +268,9 @@ struct Thread {
     state: State,
 }
 
-#[cfg(not(target_os="windows"))]
+#[cfg(not(target_os = "windows"))]
 #[derive(Debug, Default)]
-#[repr(C)] 
+#[repr(C)]
 struct ThreadContext {
     rsp: u64,
     r15: u64,
@@ -308,7 +329,7 @@ impl Runtime {
             self.t_yield();
         }
     }
-    
+
     fn t_yield(&mut self) -> bool {
         let mut pos = self.current;
         while self.threads[pos].state != State::Ready {
@@ -333,11 +354,12 @@ impl Runtime {
             switch(&mut self.threads[old_pos].ctx, &self.threads[pos].ctx);
         }
 
-        true
+        // preventing compiler optimizing our code away on windows. Will never be reached anyway.
+        self.threads.len() > 0
     }
 
-    #[cfg(not(target_os="windows"))]
-     pub fn spawn(&mut self, f: fn()) {
+    #[cfg(not(target_os = "windows"))]
+    pub fn spawn(&mut self, f: fn()) {
         let available = self
             .threads
             .iter_mut()
@@ -347,21 +369,18 @@ impl Runtime {
         let size = available.stack.len();
         let s_ptr = available.stack.as_mut_ptr();
         unsafe {
-            ptr::write(s_ptr.offset((size - 8) as isize) as *mut u64, guard as u64);
-            ptr::write(s_ptr.offset((size - 16) as isize) as *mut u64, f as u64);
-            available.ctx.rsp = s_ptr.offset((size - 16) as isize) as u64;
+            ptr::write(s_ptr.offset((size - 24) as isize) as *mut u64, guard as u64);
+            ptr::write(s_ptr.offset((size - 32) as isize) as *mut u64, f as u64);
+            available.ctx.rsp = s_ptr.offset((size - 32) as isize) as u64;
         }
         available.state = State::Ready;
     }
 }
 
-#[cfg_attr(any(target_os="windows", target_os="linux"), naked)]
 fn guard() {
     unsafe {
         let rt_ptr = RUNTIME as *mut Runtime;
-        let rt = &mut *rt_ptr;
-        println!("THREAD {} FINISHED.", rt.threads[rt.current].id);
-        rt.t_return();
+        (*rt_ptr).t_return();
     };
 }
 
@@ -374,30 +393,28 @@ pub fn yield_thread() {
 
 #[cfg(not(target_os = "windows"))]
 #[naked]
+#[inline(never)]
 unsafe fn switch(old: *mut ThreadContext, new: *const ThreadContext) {
     asm!("
-        mov     $0, %rdi
-        mov     %rsp, 0x00(%rdi)
-        mov     %r15, 0x08(%rdi)
-        mov     %r14, 0x10(%rdi)
-        mov     %r13, 0x18(%rdi)
-        mov     %r12, 0x20(%rdi)
-        mov     %rbx, 0x28(%rdi)
-        mov     %rbp, 0x30(%rdi)
-
-        mov     $1, %rsi
-        mov     0x00(%rsi), %rsp
-        mov     0x08(%rsi), %r15
-        mov     0x10(%rsi), %r14
-        mov     0x18(%rsi), %r13
-        mov     0x20(%rsi), %r12
-        mov     0x28(%rsi), %rbx
-        mov     0x30(%rsi), %rbp
-
+        mov     %rsp, 0x00($0)
+        mov     %r15, 0x08($0)
+        mov     %r14, 0x10($0)
+        mov     %r13, 0x18($0)
+        mov     %r12, 0x20($0)
+        mov     %rbx, 0x28($0)
+        mov     %rbp, 0x30($0)
+   
+        mov     0x00($1), %rsp
+        mov     0x08($1), %r15
+        mov     0x10($1), %r14
+        mov     0x18($1), %r13
+        mov     0x20($1), %r12
+        mov     0x28($1), %rbx
+        mov     0x30($1), %rbp
         ret
         "
     :
-    :"{rdi}"(old), "{rsi}"(new)
+    :"r"(old), "r"(new)
     :
     : "volatile", "alignstack"
     );
@@ -413,6 +430,7 @@ fn main() {
             println!("thread: {} counter: {}", id, i);
             yield_thread();
         }
+        println!("THREAD 1 FINISHED");
     });
     runtime.spawn(|| {
         println!("THREAD 2 STARTING");
@@ -421,14 +439,15 @@ fn main() {
             println!("thread: {} counter: {}", id, i);
             yield_thread();
         }
+        println!("THREAD 2 FINISHED");
     });
     runtime.run();
 }
 
 // ===== WINDOWS SUPPORT =====
-#[cfg(target_os="windows")]
+#[cfg(target_os = "windows")]
 #[derive(Debug, Default)]
-#[repr(C)] 
+#[repr(C)]
 struct ThreadContext {
     rsp: u64,
     r15: u64,
@@ -452,7 +471,7 @@ struct ThreadContext {
 }
 
 impl Runtime {
-    #[cfg(target_os="windows")]
+    #[cfg(target_os = "windows")]
     pub fn spawn(&mut self, f: fn()) {
         let available = self
             .threads
@@ -462,10 +481,12 @@ impl Runtime {
 
         let size = available.stack.len();
         let s_ptr = available.stack.as_mut_ptr();
+
+        // see: https://docs.microsoft.com/en-us/cpp/build/stack-usage?view=vs-2019#stack-allocation
         unsafe {
-            ptr::write(s_ptr.offset((size - 8) as isize) as *mut u64, guard as u64);
-            ptr::write(s_ptr.offset((size - 16) as isize) as *mut u64, f as u64);
-            available.ctx.rsp = s_ptr.offset((size - 16) as isize) as u64;
+            ptr::write(s_ptr.offset((size - 56) as isize) as *mut u64, guard as u64);
+            ptr::write(s_ptr.offset((size - 64) as isize) as *mut u64, f as u64);
+            available.ctx.rsp = s_ptr.offset((size - 64) as isize) as u64;
             available.ctx.stack_start = s_ptr.offset(size as isize) as u64;
         }
         available.ctx.stack_end = s_ptr as *const u64 as u64;
@@ -476,65 +497,64 @@ impl Runtime {
 
 // reference: https://probablydance.com/2013/02/20/handmade-coroutines-for-windows/
 // Contents of TIB on Windows: https://en.wikipedia.org/wiki/Win32_Thread_Information_Block
-#[cfg(target_os="windows")]
+#[cfg(target_os = "windows")]
 #[naked]
+#[inline(never)]
 unsafe fn switch(old: *mut ThreadContext, new: *const ThreadContext) {
     asm!("
-        mov     $0, %rdi
-        mov     %rsp, 0x00(%rdi)
-        mov     %r15, 0x08(%rdi)
-        mov     %r14, 0x10(%rdi)
-        mov     %r13, 0x18(%rdi)
-        mov     %r12, 0x20(%rdi)
-        mov     %rbx, 0x28(%rdi)
-        mov     %rbp, 0x30(%rdi)
-        mov     %xmm6, 0x38(%rdi)
-        mov     %xmm7, 0x40(%rdi)
-        mov     %xmm8, 0x48(%rdi)
-        mov     %xmm9, 0x50(%rdi)
-        mov     %xmm10, 0x58(%rdi)
-        mov     %xmm11, 0x60(%rdi)
-        mov     %xmm12, 0x68(%rdi)
-        mov     %xmm13, 0x70(%rdi)
-        mov     %xmm14, 0x78(%rdi)
-        mov     %xmm15, 0x80(%rdi)
-        mov     %gs:0x08, %rax     # windows support
-        mov     %rax, 0x88(%rdi)   # windows support
-        mov     %gs:0x10, %rax     # windows support
-        mov     %rax, 0x90(%rdi)   # windows support
+        mov     %rsp, 0x00($0)
+        mov     %r15, 0x08($0)
+        mov     %r14, 0x10($0)
+        mov     %r13, 0x18($0)
+        mov     %r12, 0x20($0)
+        mov     %rbx, 0x28($0)
+        mov     %rbp, 0x30($0)
+        mov     %xmm6, 0x38($0)
+        mov     %xmm7, 0x40($0)
+        mov     %xmm8, 0x48($0)
+        mov     %xmm9, 0x50($0)
+        mov     %xmm10, 0x58($0)
+        mov     %xmm11, 0x60($0)
+        mov     %xmm12, 0x68($0)
+        mov     %xmm13, 0x70($0)
+        mov     %xmm14, 0x78($0)
+        mov     %xmm15, 0x80($0)
+        mov     %gs:0x08, %rax    
+        mov     %rax, 0x88($0)  
+        mov     %gs:0x10, %rax    
+        mov     %rax, 0x90($0)  
 
-        mov     $1, %rsi
-        mov     0x00(%rsi), %rsp
-        mov     0x08(%rsi), %r15
-        mov     0x10(%rsi), %r14
-        mov     0x18(%rsi), %r13
-        mov     0x20(%rsi), %r12
-        mov     0x28(%rsi), %rbx
-        mov     0x30(%rsi), %rbp
-        mov     0x38(%rsi), %xmm6
-        mov     0x40(%rsi), %xmm7
-        mov     0x48(%rsi), %xmm8
-        mov     0x50(%rsi), %xmm9
-        mov     0x58(%rsi), %xmm10
-        mov     0x60(%rsi), %xmm11
-        mov     0x68(%rsi), %xmm12
-        mov     0x70(%rsi), %xmm13
-        mov     0x78(%rsi), %xmm14
-        mov     0x80(%rsi), %xmm15
-        mov     0x88(%rsi), %rax   # windows support
-        mov     %rax, %gs:0x08     # windows support
-        mov     0x90(%rsi), %rax   # windows support 
-        mov     %rax, %gs:0x10     # windows support
+        mov     0x00($1), %rsp
+        mov     0x08($1), %r15
+        mov     0x10($1), %r14
+        mov     0x18($1), %r13
+        mov     0x20($1), %r12
+        mov     0x28($1), %rbx
+        mov     0x30($1), %rbp
+        mov     0x38($1), %xmm6
+        mov     0x40($1), %xmm7
+        mov     0x48($1), %xmm8
+        mov     0x50($1), %xmm9
+        mov     0x58($1), %xmm10
+        mov     0x60($1), %xmm11
+        mov     0x68($1), %xmm12
+        mov     0x70($1), %xmm13
+        mov     0x78($1), %xmm14
+        mov     0x80($1), %xmm15
+        mov     0x88($1), %rax
+        mov     %rax, %gs:0x08  
+        mov     0x90($1), %rax 
+        mov     %rax, %gs:0x10  
 
         ret
         "
     :
-    :"{rdi}"(old), "{rsi}"(new)
-    : 
+    :"r"(old), "r"(new)
+    :
     : "volatile", "alignstack"
     );
-
 }
+
 
 ```
 
