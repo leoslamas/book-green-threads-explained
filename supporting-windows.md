@@ -16,7 +16,7 @@ Here I'm trying to go a bit further here to explore how we should set up the sta
 
 The reason I don't consider this important enough to implement in the main example is that that windows has more `callee saved` registers, or `non-volatile`registers as they call it.  There is also one rather poorly documented quirk with how Windows uses the segment registers to store some information that we'll need that we need to account for too.
 
-Most of what we really do is just to save more data when we do the context switch and that needs more conditional compilation, and it doesn't really add much to our goal of a basic understanding of green threads and context switches, but since we're in the rabbit hole we should dig just a bit deeper before we stop.
+Most of what we really do is just to save more data when we do the context switch and that needs more conditional compilation. It doesn't really add much to our goal of a basic understanding of green threads and context switches, but since we're already pretty far down in the the rabbit hole we might as well dig just a bit deeper before we stop.
 
 {% hint style="info" %}
 Conditionally compiling this to support windows correctly bloats our code with almost 50 % without adding much to what we need for a basic understanding.
@@ -114,7 +114,7 @@ I named the fields `stack_start`and `stack_end`since I find that easier to menta
 
 ![https://docs.microsoft.com/en-us/cpp/build/stack-usage?view=vs-2019\#stack-allocation](.gitbook/assets/image%20%281%29.png)
 
-As you see since Rust sets up our stack frames, we only need to care about where to put our `%rsp`and the return address, and this looks pretty much the same as in the psABI. The differences between Win64 and psABI are elsewhere. The way we do this, Rust takes care of all these differences for us.
+As you see since Rust sets up our stack frames, we only need to care about where to put our `%rsp`and the return address. Pretty much the same as in the psABI. The differences between Win64 and psABI are elsewhere and Rust takes care of all these differences for us.
 
 Now to implement this we need to make a change to our `spawn()`function to actually provide this information and set up our stack.
 
