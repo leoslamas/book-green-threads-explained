@@ -202,8 +202,8 @@ Next: our `yield` function:
         unsafe {
             switch(&mut self.threads[old_pos].ctx, &self.threads[pos].ctx);
         }
-
-        true
+        // Prevents compiler from optimizing our code away on Windows.
+        self.threads.len() > 0
     }
 ```
 
@@ -223,6 +223,8 @@ If we find a thread that’s ready to be run we change the state of the current 
 
 Then we call `switch` which will save the current context \(the old context\) and load the new context into the CPU. The new context is either a new task, or all the information the CPU needs to resume work on an existing task.
 
+The `self.threads.len() > 0`part in the end is just a way for us to prevent the compiler from optimizing our code away. This happens to me on Windows but not on Linux and is a common problem when running benchmarks for example. Therefore we could use [`std::hint::black_box`](https://doc.rust-lang.org/std/hint/fn.black_box.html)to prevent the compiler from going too far and skipping steps we need in order to execute the code faster. I chose a different route and as long as it's commented it should be OK. The code never reaches this point anyway.
+
 Next up is our `spawn()`function:
 
 ```rust
@@ -237,17 +239,18 @@ Next up is our `spawn()`function:
         let s_ptr = available.stack.as_mut_ptr();
 
         unsafe {
-            ptr::write(s_ptr.offset((size - 8) as isize) as *mut u64, guard as u64);
-            ptr::write(s_ptr.offset((size - 16) as isize) as *mut u64, f as u64);
-            available.ctx.rsp = s_ptr.offset((size - 16) as isize) as u64;
+            ptr::write(s_ptr.offset((size - 24) as isize) as *mut u64, guard as u64);
+            ptr::write(s_ptr.offset((size - 32) as isize) as *mut u64, f as u64);
+            available.ctx.rsp = s_ptr.offset((size - 32) as isize) as u64;
         }
-
         available.state = State::Ready;
     }
 }
 ```
 
 While `t_yield` is the logically interesting function I think this the technically most interesting.
+
+This is where we set up our stack like we talked about in the previous chapter.
 
 When we spawn a new thread we first check if there are any available threads \(threads in `Available` state\). If we run out of threads we panic in this scenario but there are several \(better\) ways to handle that. We keep things simple for now.
 
@@ -268,18 +271,16 @@ We're now finished implementing our `Runtime`, if you got all this you basically
 ## Guard and switch functions
 
 ```rust
-#[cfg_attr(any(target_os="windows", target_os="linux"), naked)]
+#[cfg_attr(target_os = "windows", naked)]
 fn guard() {
     unsafe {
         let rt_ptr = RUNTIME as *mut Runtime;
-        let rt = &mut *rt_ptr;
-        println!("THREAD {} FINISHED.", rt.threads[rt.current].id);
-        rt.t_return();
+        (*rt_ptr).t_return();
     };
 }
 ```
 
-Here we meet our first portability issue. `[cfg_attr(any(target_os="windows", target_os="linux"), naked)]` is a conditional compilation attribute. If the target OS is Windows or Linux we compile this function with the `#[naked]`attribute, if not we don’t compile it with the attribute. This way the code runs fine on Windows, the [Rust Playground](https://play.rust-lang.org/?version=nightly&mode=debug&edition=2018&gist=5fecced06eda366283ed34cbbfbd2903) and on my mac.
+Here we meet our first portability issue. `[cfg_attr(target_os = "windows", naked)]` is a conditional compilation attribute. If the target OS is Windows we compile this function with the `#[naked]`attribute, if not we don't compile it with the attribute. This way the code runs fine on Windows, the [Rust Playground](https://play.rust-lang.org/?version=nightly&mode=debug&edition=2018&gist=5fecced06eda366283ed34cbbfbd2903) and on my mac.
 
 The function means that the function we passed in has returned and that means our thread is finished running its task so we de-reference our `Runtime` and call `t_return()`. We could have made a function that does some additional work when a thread is finished but right now our `t_return()` function does all we need. It marks our thread as `Available` \(if it’s not our base thread\) and `yields` so we can resume work on a different thread.
 
@@ -298,6 +299,7 @@ We are very soon at the finish line, just one more function to go. This one shou
 
 ```rust
 #[naked]
+#[inline(never)]
 unsafe fn switch(old: *mut ThreadContext, new: *const ThreadContext) {
     asm!("
         mov     %rsp, 0x00($0)
@@ -307,7 +309,7 @@ unsafe fn switch(old: *mut ThreadContext, new: *const ThreadContext) {
         mov     %r12, 0x20($0)
         mov     %rbx, 0x28($0)
         mov     %rbp, 0x30($0)
-
+   
         mov     0x00($1), %rsp
         mov     0x08($1), %r15
         mov     0x10($1), %r14
@@ -316,12 +318,11 @@ unsafe fn switch(old: *mut ThreadContext, new: *const ThreadContext) {
         mov     0x28($1), %rbx
         mov     0x30($1), %rbp
         ret
-
         "
-    : "=*m"(old)
-    : "r"(new)
     :
-    : "alignstack" // needed to work on windows
+    :"r"(old), "r"(new)
+    :
+    : "volatile", "alignstack"
     );
 }
 ```
@@ -336,7 +337,9 @@ Most of this inline assembly is explained in the end of the chapter [An example 
 
 There are two things in this function that differs from our first function:
 
-The `"=*m"` `constraint` on our output parameter is new. As I warned before, inline assembly can be a bit gnarly, but this indicates that we provide a pointer to a memory location so we want to de-reference the memory location and write the values to the de-referenced location.
+The first is the attribute `#[inline(never)]`, this attribute prevents the compiler from inlining this function. I spent some time figuring this out, but the code will fail when running on `--release`builds if we don't include it. 
+
+The `"volatile"` `option` is new. As I warned before, inline assembly can be a bit gnarly, but this indicates that our assembly has side effects. When changing input parameters we need to make sure the compiler knows that we are changing one of the parameters passed in and not only reading from them.
 
 ```rust
 0x00($1) # 0
@@ -355,25 +358,24 @@ This is also why it’s important to annotate `ThreadContext` with `#[repr(C)]` 
 fn main() {
     let mut runtime = Runtime::new();
     runtime.init();
-
     runtime.spawn(|| {
         println!("THREAD 1 STARTING");
         let id = 1;
         for i in 0..10 {
-            println!("thread: {} counter: {}", id, i);
+            println!("thread: {} counter: {}", id, i);
             yield_thread();
         }
+        println!("THREAD 1 FINISHED");
     });
-
     runtime.spawn(|| {
         println!("THREAD 2 STARTING");
         let id = 2;
         for i in 0..15 {
-            println!("thread: {} counter: {}", id, i);
+            println!("thread: {} counter: {}", id, i);
             yield_thread();
         }
+        println!("THREAD 2 FINISHED");
     });
-
     runtime.run();
 }
 ```

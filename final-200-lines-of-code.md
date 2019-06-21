@@ -5,7 +5,7 @@
 #![feature(naked_functions)]
 use std::ptr;
 
-const DEFAULT_STACK_SIZE: usize = 1024 * 1024* 2;
+const DEFAULT_STACK_SIZE: usize = 1024 * 1024 * 2;
 const MAX_THREADS: usize = 4;
 static mut RUNTIME: usize = 0;
 
@@ -29,7 +29,7 @@ struct Thread {
 }
 
 #[derive(Debug, Default)]
-#[repr(C)] 
+#[repr(C)]
 struct ThreadContext {
     rsp: u64,
     r15: u64,
@@ -88,7 +88,7 @@ impl Runtime {
             self.t_yield();
         }
     }
-    
+
     fn t_yield(&mut self) -> bool {
         let mut pos = self.current;
         while self.threads[pos].state != State::Ready {
@@ -113,7 +113,7 @@ impl Runtime {
             switch(&mut self.threads[old_pos].ctx, &self.threads[pos].ctx);
         }
 
-        true
+        self.threads.len() > 0
     }
 
     pub fn spawn(&mut self, f: fn()) {
@@ -127,21 +127,19 @@ impl Runtime {
         let s_ptr = available.stack.as_mut_ptr();
 
         unsafe {
-            ptr::write(s_ptr.offset((size - 8) as isize) as *mut u64, guard as u64);
-            ptr::write(s_ptr.offset((size - 16) as isize) as *mut u64, f as u64);
-            available.ctx.rsp = s_ptr.offset((size - 16) as isize) as u64;
+            ptr::write(s_ptr.offset((size - 24) as isize) as *mut u64, guard as u64);
+            ptr::write(s_ptr.offset((size - 32) as isize) as *mut u64, f as u64);
+            available.ctx.rsp = s_ptr.offset((size - 32) as isize) as u64;
         }
         available.state = State::Ready;
     }
 }
 
-#[cfg_attr(any(target_os="windows", target_os="linux"), naked)]
+#[cfg_attr(target_os = "windows", naked)]
 fn guard() {
     unsafe {
         let rt_ptr = RUNTIME as *mut Runtime;
-        let rt = &mut *rt_ptr;
-        println!("THREAD {} FINISHED.", rt.threads[rt.current].id);
-        rt.t_return();
+        (*rt_ptr).t_return();
     };
 }
 
@@ -152,8 +150,8 @@ pub fn yield_thread() {
     };
 }
 
-// see: https://github.com/rust-lang/rfcs/blob/master/text/1201-naked-fns.md
 #[naked]
+#[inline(never)]
 unsafe fn switch(old: *mut ThreadContext, new: *const ThreadContext) {
     asm!("
         mov     %rsp, 0x00($0)
@@ -163,7 +161,7 @@ unsafe fn switch(old: *mut ThreadContext, new: *const ThreadContext) {
         mov     %r12, 0x20($0)
         mov     %rbx, 0x28($0)
         mov     %rbp, 0x30($0)
-
+   
         mov     0x00($1), %rsp
         mov     0x08($1), %r15
         mov     0x10($1), %r14
@@ -173,10 +171,10 @@ unsafe fn switch(old: *mut ThreadContext, new: *const ThreadContext) {
         mov     0x30($1), %rbp
         ret
         "
-    : "=*m"(old)
-    : "r"(new)
     :
-    : "alignstack" // needed to work on windows
+    :"r"(old), "r"(new)
+    :
+    : "volatile", "alignstack"
     );
 }
 
@@ -190,6 +188,7 @@ fn main() {
             println!("thread: {} counter: {}", id, i);
             yield_thread();
         }
+        println!("THREAD 1 FINISHED");
     });
     runtime.spawn(|| {
         println!("THREAD 2 STARTING");
@@ -198,6 +197,7 @@ fn main() {
             println!("thread: {} counter: {}", id, i);
             yield_thread();
         }
+        println!("THREAD 2 FINISHED");
     });
     runtime.run();
 }

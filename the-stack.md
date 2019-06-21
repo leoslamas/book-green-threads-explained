@@ -2,7 +2,7 @@
 
 > A stack is nothing more than a piece of contiguous memory.
 
-This is important to know. A computer only has memory, it doesn't have a special “stack” memory and a “heap” memory, it’s all part of the same memory. 
+This is important to know. A computer only has memory, it doesn't have a special "stack" memory and a "heap" memory, it's all part of the same memory.
 
 The difference is how this memory is accessed and used. The stack support simple push/pop instructions on a contiguous part of memory, that’s what makes it fast to use. The heap memory is allocated by a memory allocator on demand and can be scattered around in different locations.
 
@@ -12,7 +12,7 @@ We’ll not go through the differences between the stack and the heap here, sinc
 
 ![Simplified view of a stack](.gitbook/assets/image.png)
 
-Let’s start with a simplified view of the stack. A 64 bit CPU will read 8 bytes at a time, even though the natural way for us to see a stack is a long line of `u8` so when we pass a pointer we need to make sure we pass inn a pointer to either address `0016`, `0008` or `0000` in the example above. 
+Let’s start with a simplified view of the stack. A 64 bit CPU will read 8 bytes at a time, even though the natural way for us to see a stack is a long line of `u8`so when we pass a pointer we need to make sure we pass in a pointer to either address `0016`, `0008` or `0000` in the example above.
 
 The stack grows downwards, so we start at the top and work our way down.
 
@@ -82,11 +82,11 @@ mem: 94846750517824, val: 0
 I LOVE WAKING UP ON A NEW STACK!
 ```
 
-I've printed out the memory addresses as u64 here so it’s easier to parse if you're not very familiar with hex. 
+I’ve printed out the memory addresses as u64 here so it’s easier to parse if you’re not very familiar with hex.
 
-The first thing to note is that this is just a contiguous piece of memory, starting at address `94846750517824` and ending on `94846750517871`. 
+The first thing to note is that this is just a contiguous piece of memory, starting at address `94846750517824` and ending on `94846750517871`.
 
-The addresses `94846750517856` to `94846750517863` is of special interest for us. The first address is the address of our “stack pointer”, the value we write to the `%rsp` register of the CPU. The range represents the values we wrote to the stack before we made the switch. 
+The addresses `94846750517856`to `94846750517863`is of special interest for us. The first address is the address of our "stack pointer", the value we write to the `%rsp`register of the CPU. The range represents the values we wrote to the stack before we made the switch.
 
 In other words the values `240, 205, 252, 56, 67, 86, 0, 0` is the pointer to our `hello()` function written as `u8`values.
 
@@ -116,13 +116,23 @@ As you might understand, if the stack is moved to a different address space our 
 
 Ok, now that we’ve gone through the basics of how a stack looks and works and we are ready to move on to implementing our green threads. You've already done much of the hard work so I promise more code now.
 
+How to set up the stack
+
+The Windows x64-86 sets up its stack slightly differently from the x64-86 psABI calling convention. I'll dedicate more time to the Windows stack in the [Appendix: Supporting Windows](supporting-windows.md) chapter, but important to know is that the differences are not that big when we're setting up the stack with simple functions that doesn't take parameters like we do here.
+
+The psABI stack layout is like this:
+
+![](.gitbook/assets/bilde.png)
+
+As you know now the `%rsp`is our stack pointer. Now as you see we need to put the stack pointer in a position which is a multiple of 16 from our base. The return address is located in the adjacent 8 bytes, and as you see there is a room for memory arguments above that. We need to keep this in mind when we want to do more complex things than we have so far.
+
 ## Bonus material
 
 If you are curious enough you might wonder what happens with the stack after we switch over to it?
 
-The answer is that our code written in Rust compiles to instructions for our CPU which then takes over and uses our stack just like any other stack. 
+The answer is that our code written in Rust compiles to instructions for our CPU which then takes over and uses our stack just like any other stack.
 
-Unfortunately to show this I had to increase the stack size to 1024 bytes to allow for the code to print out the stack itself to get enough space so it’s not something we could print out here. 
+Unfortunately to show this I had to increase the stack size to 1024 bytes to allow for the code to print out the stack itself to get enough space so it's not something we could print out here.
 
 ### Taking a look at the stack
 
