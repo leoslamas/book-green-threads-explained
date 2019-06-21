@@ -14,7 +14,7 @@ Here I'm trying to go a bit further here to explore how we should set up the sta
 
 ### What's special with Windows
 
-The reason I don't consider this important enough to implement in the main example is that that windows has more `callee saved` registers, or `non-volatile`registers as they call it in addition to a slightly different stack layout.  There is also one rather poorly documented quirk with how Windows uses the segment registers to store some information that we'll need that we need to account for too.
+The reason I don't consider this important enough to implement in the main example is that that windows has more `callee saved` registers, or `non-volatile`registers as they call it.  There is also one rather poorly documented quirk with how Windows uses the segment registers to store some information that we'll need that we need to account for too.
 
 Most of what we really do is just to save more data when we do the context switch and that needs more conditional compilation, and it doesn't really add much to our goal of a basic understanding of green threads and context switches, but since we're in the rabbit hole we should dig just a bit deeper before we stop.
 
@@ -116,19 +116,7 @@ The windows stack should look like this:
 
 ![https://docs.microsoft.com/en-us/cpp/build/stack-usage?view=vs-2019\#stack-allocation](.gitbook/assets/image%20%281%29.png)
 
-If you read the reference you'll find this additional information about the "register parameter stack area" :
-
-> A function's prolog is responsible for allocating stack space for local variables, saved registers, stack parameters, and register parameters. The parameter area is always at the bottom of the stack \(even if `alloca` is used\), so that it will always be adjacent to the return address during any function call.
-
-So, and this is my understanding, not 100 % verified to be true \(hopefully I can get this verified soon\), our `guard`function does have a prologue and on Windows it will assume that there is space for at least 4 parameter entries. We know our guard function takes no parameters, and no user can add a different function. We can then safely assume that the code Rust generate might rely on space for 1 return address and 4 entries on the bottom of it's stack.
-
-As we know by now, the stack grows downwards so we need to make sure there is at least 40 bytes of space controlled by us "below" the `guard`function. The next 16 byte aligned position for is `stack_size - 64`so we put our base pointer there.
-
-{% hint style="info" %}
-Why did our code run in our first example? Again, I have to make some assumptions here, in our first examples we only put one function on our stack that never returned and took zero parameters. In the second example we put our function on the stack and a return address. Now this time we had to make our `switch`function naked for it to work but our `guard`function still took no parameters and never returned. 
-
-Remember it either switched to a different context or killed the process when finished. That made our code work, in that specific example. 
-{% endhint %}
+As you see since Rust sets up our stack frames, we only need to care about where to put our `%rsp`and the return address, and this looks pretty much the same as in the psABI. The differences are elsewhere as you see and the way we do this, Rust takes care of these differences for us.
 
 Now to implement this we need to make a change to our `spawn()`function to actually provide this information and set up our stack.
 
@@ -148,9 +136,9 @@ Now to implement this we need to make a change to our `spawn()`function to actua
 
         // see: https://docs.microsoft.com/en-us/cpp/build/stack-usage?view=vs-2019#stack-allocation
         unsafe {
-            ptr::write(s_ptr.offset((size - 56) as isize) as *mut u64, guard as u64);
-            ptr::write(s_ptr.offset((size - 64) as isize) as *mut u64, f as u64);
-            available.ctx.rsp = s_ptr.offset((size - 64) as isize) as u64;
+            ptr::write(s_ptr.offset((size - 34) as isize) as *mut u64, guard as u64);
+            ptr::write(s_ptr.offset((size - 32) as isize) as *mut u64, f as u64);
+            available.ctx.rsp = s_ptr.offset((size - 32) as isize) as u64;
             available.ctx.stack_start = s_ptr.offset(size as isize) as u64;
         }
         available.ctx.stack_end = s_ptr as *const u64 as u64;
@@ -484,9 +472,9 @@ impl Runtime {
 
         // see: https://docs.microsoft.com/en-us/cpp/build/stack-usage?view=vs-2019#stack-allocation
         unsafe {
-            ptr::write(s_ptr.offset((size - 56) as isize) as *mut u64, guard as u64);
-            ptr::write(s_ptr.offset((size - 64) as isize) as *mut u64, f as u64);
-            available.ctx.rsp = s_ptr.offset((size - 64) as isize) as u64;
+            ptr::write(s_ptr.offset((size - 24) as isize) as *mut u64, guard as u64);
+            ptr::write(s_ptr.offset((size - 32) as isize) as *mut u64, f as u64);
+            available.ctx.rsp = s_ptr.offset((size - 24) as isize) as u64;
             available.ctx.stack_start = s_ptr.offset(size as isize) as u64;
         }
         available.ctx.stack_end = s_ptr as *const u64 as u64;

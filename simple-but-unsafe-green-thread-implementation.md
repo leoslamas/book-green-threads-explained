@@ -250,7 +250,7 @@ Next up is our `spawn()`function:
 
 While `t_yield` is the logically interesting function I think this the technically most interesting.
 
-This is where we set up our stack like we talked about in the previous chapter.
+This is where we set up our stack like we talked about in the previous chapter and making sure our stack looks like the one specified in the psABI [stack layout](the-stack.md#how-to-set-up-the-stack).
 
 When we spawn a new thread we first check if there are any available threads \(threads in `Available` state\). If we run out of threads we panic in this scenario but there are several \(better\) ways to handle that. We keep things simple for now.
 
@@ -338,7 +338,7 @@ There are two things in this function that differs from our first function:
 
 The first is the attribute `#[inline(never)]`, this attribute prevents the compiler from `inlining` this function. I spent some time figuring this out, but the code will fail when running on `--release`builds if we don't include it. 
 
-The `"volatile"` `option` is new. As I warned before, inline assembly can be a bit gnarly, but this indicates that our assembly has side effects. When changing input parameters we need to make sure the compiler knows that we are changing one of the parameters passed in and not only reading from them.
+The `"volatile"` `option` is new. As I warned before, inline assembly can be a bit gnarly, but this indicates that our assembly has side effects. When providing our parameters as `input` we need to make sure the compiler knows that we are changing one of the parameters passed in and not only reading from them.
 
 ```rust
 0x00($1) # 0
