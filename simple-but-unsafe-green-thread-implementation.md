@@ -223,7 +223,7 @@ If we find a thread that's ready to be run we change the state of the current th
 
 Then we call `switch` which will save the current context \(the old context\) and load the new context into the CPU. The new context is either a new task, or all the information the CPU needs to resume work on an existing task.
 
-The `self.threads.len() > 0`part in the end is just a way for us to prevent the compiler from optimizing our code away. This happens to me on Windows but not on Linux. This is a common problem when running benchmarks, therefore we could use [`std::hint::black_box`](https://doc.rust-lang.org/std/hint/fn.black_box.html)to make the compiler think we need to use this value. But as long as it's commented it's OK to do what I did.
+The `self.threads.len() > 0`part in the end is just a way for us to prevent the compiler from optimizing our code away. This happens to me on Windows but not on Linux and is a common problem when running benchmarks for example. Therefore we could use [`std::hint::black_box`](https://doc.rust-lang.org/std/hint/fn.black_box.html)to prevent the compiler from going too far and skipping steps we need in order to execute the code faster. I chose a different route and as long as it's commented it should be OK. The code never reaches this point anyway.
 
 Next up is our `spawn()`function:
 

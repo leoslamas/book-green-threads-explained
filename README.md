@@ -49,7 +49,7 @@ All the code I provide here is in a single file and has no dependencies which me
 Currently there is an issue I have with the `asm!`macro that doesn't compile in release mode. It seems to be related to the `"=m"`constraint I use in the inline macro. 
 
 **Edit 2019-06-21:**  
-I've decided to work around this and change the inline assembly to be easier to read and also compiling and running on release builds.
+I've decided to work around this and change the inline assembly to compile and run on release builds.
 
 I've tested the code on OSX, Linux and Windows.
 
