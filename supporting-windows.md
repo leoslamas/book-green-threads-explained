@@ -112,11 +112,9 @@ I named the fields `stack_start`and `stack_end`since I find that easier to menta
 
 ### The Windows stack
 
-The windows stack should look like this:
-
 ![https://docs.microsoft.com/en-us/cpp/build/stack-usage?view=vs-2019\#stack-allocation](.gitbook/assets/image%20%281%29.png)
 
-As you see since Rust sets up our stack frames, we only need to care about where to put our `%rsp`and the return address, and this looks pretty much the same as in the psABI. The differences are elsewhere as you see and the way we do this, Rust takes care of these differences for us.
+As you see since Rust sets up our stack frames, we only need to care about where to put our `%rsp`and the return address, and this looks pretty much the same as in the psABI. The differences between Win64 and psABI are elsewhere. The way we do this, Rust takes care of all these differences for us.
 
 Now to implement this we need to make a change to our `spawn()`function to actually provide this information and set up our stack.
 
@@ -478,7 +476,6 @@ impl Runtime {
             available.ctx.stack_start = s_ptr.offset(size as isize) as u64;
         }
         available.ctx.stack_end = s_ptr as *const u64 as u64;
-
         available.state = State::Ready;
     }
 }
@@ -542,7 +539,5 @@ unsafe fn switch(old: *mut ThreadContext, new: *const ThreadContext) {
     : "volatile", "alignstack"
     );
 }
-
-
 ```
 
