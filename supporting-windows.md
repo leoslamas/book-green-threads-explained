@@ -54,7 +54,7 @@ struct ThreadContext {
 
 ## The Thread Information Block
 
-The second part is poorly documented. I've actually struggled to verify exactly how skipping this will cause a failure on modern Windows but there's [enough references to it](https://probablydance.com/2013/02/20/handmade-coroutines-for-windows/) around from trustworthy sources that I'm in no doubt we need to go through this.
+The second part is poorly documented. I've actually struggled to verify exactly how skipping this will cause a failure on modern Windows but there's [enough references to it](https://probablydance.com/2013/02/20/handmade-coroutines-for-windows/) around from [trustworthy sources](https://github.com/boostorg/context/blob/develop/src/asm/ontop_x86_64_ms_pe_gas.asm#L116-L129) that I'm in no doubt we need to go through this.
 
 You see, Windows wants to store some information about the currently running thread in what it calls the `Thread Information Block`, referred to as `NT_TIB`. Specifically it wants access to information about the `Stack Base`and the `Stack Limit`in the `%gs`register.
 
@@ -113,7 +113,7 @@ Now to implement this we need to make a change to our `spawn()` function to actu
 
 ![https://docs.microsoft.com/en-us/cpp/build/stack-usage?view=vs-2019\#stack-allocation](.gitbook/assets/image%20%281%29.png)
 
-As you see since Rust sets up our stack frames, we only need to care about where to put our `%rsp`and the return address. Pretty much the same as in the psABI. The differences between Win64 and psABI are elsewhere and Rust takes care of all these differences for us.
+You see, since Rust sets up our stack frames, we only need to care about where to put our `%rsp`and the return address and this looks pretty much the same as in the psABI. The differences between Win64 and psABI are elsewhere and Rust takes care of all these differences for us.
 
 Now to implement this we need to make a change to our `spawn()`function to actually provide this information and set up our stack.
 
