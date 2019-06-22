@@ -131,11 +131,11 @@ impl Runtime {
             ptr::write(s_ptr.offset((size - 32) as isize) as *mut u64, f as u64);
             available.ctx.rsp = s_ptr.offset((size - 32) as isize) as u64;
         }
+        
         available.state = State::Ready;
     }
 }
 
-#[cfg_attr(target_os = "windows", naked)]
 fn guard() {
     unsafe {
         let rt_ptr = RUNTIME as *mut Runtime;
