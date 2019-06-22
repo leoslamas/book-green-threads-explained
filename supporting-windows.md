@@ -24,7 +24,7 @@ Now that doesn't mean this isn't interesting, on the contrary, but we'll also ex
 
 ### Additional callee saved \(non-volatile\) registers
 
-The first thing I mentioned is that windows wants to save more data during context switches, in particular the XMM6-XMM15 registers. it's actually [mentioned specifically in the reference](https://docs.microsoft.com/en-us/cpp/build/x64-software-conventions?view=vs-2019#register-usage) so this is just adding more fields to our `ThreadContext` struct. This is very easy now that we've done it once before.
+The first thing I mentioned is that windows wants to save more data during context switches, in particular the XMM6-XMM15 registers. It's actually [mentioned specifically in the reference](https://docs.microsoft.com/en-us/cpp/build/x64-software-conventions?view=vs-2019#register-usage) so this is just adding more fields to our `ThreadContext` struct. This is very easy now that we've done it once before.
 
 Our ThreadContext now looks like this:
 
@@ -213,10 +213,10 @@ unsafe fn switch(old: *mut ThreadContext, new: *const ThreadContext) {
 }
 ```
 
-As you see, our code gets just a little bit longer. it's not difficult once you've figured out what to store where, but it does add a lot of code.
+As you see, our code gets just a little bit longer. It's not difficult once you've figured out what to store where, but it does add a lot of code.
 
 {% hint style="warning" %}
-Our inline assembly won't let us `mov`from one memory offset to another memory offset so we need to go via a register. I chose the`rax`register \(the default register for the return value\) but could have chosen any general purpose register for this.
+Our inline assembly won't let us `mov` from one memory offset to another memory offset so we need to go via a register. I chose the`rax` register \(the default register for the return value\) but could have chosen any general purpose register for this.
 {% endhint %}
 
 ### Conclusion

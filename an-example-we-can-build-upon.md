@@ -146,7 +146,7 @@ Inline ASM is a bit different from plain ASM. There are four additional paramete
 {% endcode-tabs-item %}
 {% endcode-tabs %}
 
-The second is our `input` parameter. the `"r"` literal is what is called a `constraint` when writing inline assembly. You can use these constraints to effectively direct where the compiler can decide to put your input \(in one of the registers as a value or use it as a "memory" location for example\). `"r"` simply means that this is put in a general purpose register that the compiler chooses. Constraints in inline assembly is a pretty big subject themselves, fortunately we have pretty simple needs.
+The second is our `input` parameter. The `"r"` literal is what is called a `constraint` when writing inline assembly. You can use these constraints to effectively direct where the compiler can decide to put your input \(in one of the registers as a value or use it as a "memory" location for example\). `"r"` simply means that this is put in a general purpose register that the compiler chooses. Constraints in inline assembly is a pretty big subject themselves, fortunately we have pretty simple needs.
 
 {% code-tabs %}
 {% code-tabs-item title="clobber list" %}

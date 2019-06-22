@@ -149,7 +149,7 @@ Then we instantiate the rest of the threads and set the current thread to `0` wh
     }
 ```
 
-Right now we need this. As I mentioned when going through our constants we need this to be able to call `yield` later on. it's not pretty, but we know that our runtime will be alive as long as there is any thread to `yield` so as long as we don't abuse this it's safe to do.
+Right now we need this. As I mentioned when going through our constants we need this to be able to call `yield` later on. It's not pretty, but we know that our runtime will be alive as long as there is any thread to `yield` so as long as we don't abuse this it's safe to do.
 
 ```rust
     pub fn run(&mut self) -> ! {
