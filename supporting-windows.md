@@ -14,9 +14,7 @@ Here I'm trying to go a bit further here to explore how we should set up the sta
 
 ### What's special with Windows
 
-The reason I don't consider this important enough to implement in the main example is that that windows has more `callee saved` registers, or `non-volatile`registers as they call it.  There is also one rather poorly documented quirk with how Windows uses the segment registers to store some information that we'll need that we need to account for too.
-
-Most of what we really do is just to save more data when we do the context switch and that needs more conditional compilation. It doesn't really add much to our goal of a basic understanding of green threads and context switches, but since we're already pretty far down in the the rabbit hole we might as well dig just a bit deeper before we stop.
+The reason I don't consider this important enough to implement in the main example is that that windows has more `callee saved` registers, or `non-volatile`registers as they call it in addition to one rather poorly documented quirk that we need to account for, so what we really do is just to save more data when we do the context switch and that needs more conditional compilation.
 
 {% hint style="info" %}
 Conditionally compiling this to support windows correctly bloats our code with almost 50 % without adding much to what we need for a basic understanding.
@@ -26,7 +24,7 @@ Now that doesn't mean this isn't interesting, on the contrary, but we'll also ex
 
 ### Additional callee saved \(non-volatile\) registers
 
-The first thing I mentioned is that windows wants to save more data during context switches, in particular the XMM6-XMM15 registers. It's actually [mentioned specifically in the reference](https://docs.microsoft.com/en-us/cpp/build/x64-software-conventions?view=vs-2019#register-usage) so this is just adding more fields to our `ThreadContext`struct. This is very easy now that we've done it once before.
+The first thing I mentioned is that windows wants to save more data during context switches, in particular the XMM6-XMM15 registers. It's actually [mentioned specifically in the reference](https://docs.microsoft.com/en-us/cpp/build/x64-software-conventions?view=vs-2019#register-usage) so this is just adding more fields to our `ThreadContext` struct. This is very easy now that we've done it once before.
 
 Our ThreadContext now looks like this:
 
@@ -108,7 +106,10 @@ struct ThreadContext {
 Notice we use the `#[cfg(target_os="windows")]` attribute here on all the Windows specific functions and structs, which mean we need to give our "original" definitions an attribute that makes sure it compiles them for all other targets than Windows: `[cfg(not(target_os="windows"))].`
 {% endhint %}
 
-I named the fields `stack_start`and `stack_end`since I find that easier to mentally parse since we know the stack starts on the top and grows downwards to the bottom.
+I named the fields `stack_start` and `stack_end` since I find that easier to mentally parse since we know the stack starts on the top and grows downwards to the bottom.
+
+
+Now to implement this we need to make a change to our `spawn()` function to actually provide this information:
 
 ### The Windows stack
 
@@ -215,7 +216,7 @@ unsafe fn switch(old: *mut ThreadContext, new: *const ThreadContext) {
 As you see, our code gets just a little bit longer. It's not difficult once you've figured out what to store where, but it does add a lot of code.
 
 {% hint style="warning" %}
-Our inline assembly won't let us `mov`from one memory offset to another memory offset so we need to go via a register. I chose the`rax`register \(the default register for the return value\) but could have chosen any general purpose register for this.
+Our inline assembly won't let us `mov` from one memory offset to another memory offset so we need to go via a register. I chose the`rax` register \(the default register for the return value\) but could have chosen any general purpose register for this.
 {% endhint %}
 
 ### Conclusion

@@ -2,33 +2,33 @@
 
 Before we start I'll mention that the code we write is quite unsafe and is not a "best practice" when writing Rust code. I want to try to make this as safe as possible without introducing a lot of unneeded complexity, so I encourage you dear reader to suggest a [PR to the projects repo](https://github.com/cfsamson/example-greenthreads) if you see something that could be done a safer way without making our code too complex.
 
-## Lets get going
+## Let's get going
 
-The first thing we do is to delete our example in our `main.rs`so we start from scratch and add the following.
+The first thing we do is to delete our example in our `main.rs`so we start from scratch and add the following:
 
 ```rust
 #![feature(asm)]
 #![feature(naked_functions)]
 use std::ptr;
 
-const DEFAULT_STACK_SIZE: usize = 1024 * 1024* 2;
+const DEFAULT_STACK_SIZE: usize = 1024 * 1024 * 2;
 const MAX_THREADS: usize = 4;
 static mut RUNTIME: usize = 0;
 ```
 
-We enable two features the `asm`feature that we covered earlier, and the `naked_functions`feature, that we need to explain.
+We enable two features the `asm` feature that we covered earlier, and the `naked_functions` feature, that we need to explain.
 
 ### naked\_functions
 
 You see, when Rust compiles a function, it adds a small prologue and epilogue to each function and this causes some issues for us when we switch contexts since we end up with a misaligned stack. This worked fine in our first simple example but once we need to switch back to the same stack again we en up in trouble. Marking the a function as `#[naked]`removes the prologue and epilogue. This attribute is mostly used in relation to inline assembly.
 
 {% hint style="info" %}
-If you are interested you can read more about the`naked_functions`feature in [RFC \#1201](https://github.com/rust-lang/rfcs/blob/master/text/1201-naked-fns.md)
+If you are interested you can read more about the `naked_functions` feature in [RFC \#1201](https://github.com/rust-lang/rfcs/blob/master/text/1201-naked-fns.md)
 {% endhint %}
 
-Our `DEFAULT_STACK_SIZE`is set to 2 MB which is more than enough for our use. We also set `MAX_THREADS`to 4 since we don't need more for our example.
+Our `DEFAULT_STACK_SIZE` is set to 2 MB which is more than enough for our use. We also set `MAX_THREADS` to 4 since we don't need more for our example.
 
-The last constant `RUNTIME`is a pointer to our runtime \(yeah, I know, it's not pretty with a mutable global variable but we need it later and we're only setting this variable on runtime initialization\).
+The last constant `RUNTIME` is a pointer to our runtime \(yeah, I know, it's not pretty with a mutable global variable but we need it later and we're only setting this variable on runtime initialization\).
 
 Let's start fleshing out something to represent our data:
 
@@ -103,7 +103,7 @@ One thing to note is that we allocate our stack here. That is not needed and is 
 {% hint style="warning" %}
 The important thing to note is that once a stack is allocated it must not move! No`push()`on the vector or any other methods that might trigger a reallocation. In a better version of this code we would make our own type that only exposes the methods we consider safe to use.
 
-It's worth mentioning that`Vec<T>`has a [method ](https://doc.rust-lang.org/std/vec/struct.Vec.html#method.into_boxed_slice)called`into_boxed_slice()`which returns a heap allocated slice `Box<[T]>`. Slices can't grow, so if we store that instead we can avoid the reallocation problem.
+it's worth mentioning that`Vec<T>`has a [method ](https://doc.rust-lang.org/std/vec/struct.Vec.html#method.into_boxed_slice)called`into_boxed_slice()`which returns a heap allocated slice `Box<[T]>`. Slices can't grow, so if we store that instead we can avoid the reallocation problem.
 {% endhint %}
 
 ## Implementing the Runtime
@@ -216,7 +216,7 @@ If no thread is `Ready` we're all done. This is an extremely simple scheduler us
 {% hint style="info" %}
 This is a very naive implementation tailor made for our example. What happens if our thread is not ready to make progress \(not in a `Ready` state\) and still waiting for a response from i.e. a database?
 
-It's not too difficult to work around this, instead of running our code directly when a thread is `Ready` we could instead poll it for a status. For example it could return `IsReady` if it's really ready to run or `Pending` if it's waiting for some operation to finish. In the latter case we could just leave it in it's `Ready` state to get polled again later. Does this sound familiar? If you've read about how [Futures](https://rust-lang-nursery.github.io/futures-api-docs/0.3.0-alpha.16/futures/task/enum.Poll.html#variant.Pending) work in Rust, we are starting to connect some dots on how this all fits together.
+it's not too difficult to work around this, instead of running our code directly when a thread is `Ready` we could instead poll it for a status. For example it could return `IsReady` if it's really ready to run or `Pending` if it's waiting for some operation to finish. In the latter case we could just leave it in it's `Ready` state to get polled again later. Does this sound familiar? If you've read about how [Futures](https://rust-lang-nursery.github.io/futures-api-docs/0.3.0-alpha.16/futures/task/enum.Poll.html#variant.Pending) work in Rust, we are starting to connect some dots on how this all fits together.
 {% endhint %}
 
 If we find a thread that's ready to be run we change the state of the current thread from `Running` to `Ready`.
@@ -256,10 +256,10 @@ When we spawn a new thread we first check if there are any available threads \(t
 
 When we find an available thread we get the stack length and a pointer to our `u8` byte-array.
 
-In the next segment we have to use some unsafe functions. First we write the address to our `guard` function that will be called when the task we provide finishes and the function returns. Then we write the address to `f`which is the function we pass inn and want to run.
+In the next segment we have to use some unsafe functions. First we write the address to our `guard` function that will be called when the task we provide finishes and the function returns. Then we write the address to `f` which is the function we pass inn and want to run.
 
 {% hint style="info" %}
-Remember how we explained how the stack works in [The Stack](the-stack.md) chapter. We want the `f` function to be the first to run so we set the base pointer to `f`and make sure it's 16 byte aligned. We then push the address to `guard`function. This is not 16 byte aligned but when `f` returns the CPU will read the next address as the return address of `f`and resume execution there.
+Remember how we explained how the stack works in [The Stack](the-stack.md) chapter. We want the `f` function to be the first to run so we set the base pointer to `f` and make sure it's 16 byte aligned. We then push the address to `guard` function. This is not 16 byte aligned but when `f` returns the CPU will read the next address as the return address of `f` and resume execution there.
 {% endhint %}
 
 Third, we set the value of `rsp` which is the stack pointer to the address of our provided function so we start executing that first when we are scheduled to run.
@@ -279,7 +279,9 @@ fn guard() {
 }
 ```
 
+
 The function means that the function we passed in has returned and that means our thread is finished running its task so we de-reference our `Runtime` and call `t_return()`. We could have made a function that does some additional work when a thread is finished but right now our `t_return()` function does all we need. It marks our thread as `Available` \(if it's not our base thread\) and `yields` so we can resume work on a different thread.
+
 
 ```rust
 pub fn yield_thread() {
@@ -347,7 +349,7 @@ The `"volatile"` `option` is new. As I warned before, inline assembly can be a b
 0x18($1) # 24
 ```
 
-I mentioned this briefly, but here you see it in action. These are `hex` numbers indicating the _offset_ from the memory pointer to which we want to read/write. I wrote down the base-10 numbers as comments so you see we only offset the pointer in 8 byte steps which is the same size as the `u64`fields on our `ThreadContext` struct.
+I mentioned this briefly, but here you see it in action. These are `hex` numbers indicating the _offset_ from the memory pointer to which we want to read/write. I wrote down the base-10 numbers as comments so you see we only offset the pointer in 8 byte steps which is the same size as the `u64` fields on our `ThreadContext` struct.
 
 This is also why it's important to annotate `ThreadContext` with `#[repr(C)]` so we know that the data will be represented in memory this way and we write to the right field. The Rust ABI makes no guarantee that they are represented in the same order in memory, however the C-ABI does.
 
