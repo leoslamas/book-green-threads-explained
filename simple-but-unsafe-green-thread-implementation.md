@@ -279,9 +279,7 @@ fn guard() {
 }
 ```
 
-
 The function means that the function we passed in has returned and that means our thread is finished running its task so we de-reference our `Runtime` and call `t_return()`. We could have made a function that does some additional work when a thread is finished but right now our `t_return()` function does all we need. It marks our thread as `Available` \(if it's not our base thread\) and `yields` so we can resume work on a different thread.
-
 
 ```rust
 pub fn yield_thread() {
@@ -308,7 +306,7 @@ unsafe fn switch(old: *mut ThreadContext, new: *const ThreadContext) {
         mov     %r12, 0x20($0)
         mov     %rbx, 0x28($0)
         mov     %rbp, 0x30($0)
-   
+
         mov     0x00($1), %rsp
         mov     0x08($1), %r15
         mov     0x10($1), %r14
@@ -338,7 +336,7 @@ Most of this inline assembly is explained in the end of the chapter [An example 
 
 There are two things in this function that differs from our first function:
 
-The first is the attribute `#[inline(never)]`, this attribute prevents the compiler from `inlining` this function. I spent some time figuring this out, but the code will fail when running on `--release`builds if we don't include it. 
+The first is the attribute `#[inline(never)]`, this attribute prevents the compiler from `inlining` this function. I spent some time figuring this out, but the code will fail when running on `--release`builds if we don't include it.
 
 The `"volatile"` `option` is new. As I warned before, inline assembly can be a bit gnarly, but this indicates that our assembly has side effects. When providing our parameters as `input` we need to make sure the compiler knows that we are changing one of the parameters passed in and not only reading from them.
 
@@ -363,7 +361,7 @@ fn main() {
         println!("THREAD 1 STARTING");
         let id = 1;
         for i in 0..10 {
-            println!("thread: {} counter: {}", id, i);
+            println!("thread: {} counter: {}", id, i);
             yield_thread();
         }
         println!("THREAD 1 FINISHED");
@@ -372,7 +370,7 @@ fn main() {
         println!("THREAD 2 STARTING");
         let id = 2;
         for i in 0..15 {
-            println!("thread: {} counter: {}", id, i);
+            println!("thread: {} counter: {}", id, i);
             yield_thread();
         }
         println!("THREAD 2 FINISHED");

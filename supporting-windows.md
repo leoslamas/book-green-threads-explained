@@ -4,15 +4,14 @@ Our example works for both OSX, Linux and Windows, but as I have pointed out, ou
 
 You might wonder why I didn't include this in the original code, and the reason for that is that this is really not at all that relevant for explaining the main concepts I wanted to explore.
 
-{% hint style="warning" %}
 Here I'm trying to go a bit further here to explore how we should set up the stack for Windows correct way and do a proper context switch. Even though we might not get all the way to a perfect implementation, there is plenty of information and references for you to explore further and I'll list some of them here:
 
 * [Microsofts x64 software conventions](https://docs.microsoft.com/en-us/cpp/build/x64-software-conventions?view=vs-2019)
 * [Win64/AMD64 API](https://wiki.lazarus.freepascal.org/Win64/AMD64_API) - nice summary of differences between psABi and Win64
 * [Handmade Coroutines for Windows](https://probablydance.com/2013/02/20/handmade-coroutines-for-windows/) - a very good read about a coroutine implementation
-{% endhint %}
+* [Boost Context assembly](https://github.com/boostorg/context/blob/develop/src/asm/ontop_x86_64_ms_pe_gas.asm) - it's in C++ but it's a good reference for further study
 
-### What's special with Windows
+## What's special with Windows
 
 The reason I don't consider this important enough to implement in the main example is that that windows has more `callee saved` registers, or `non-volatile`registers as they call it in addition to one rather poorly documented quirk that we need to account for, so what we really do is just to save more data when we do the context switch and that needs more conditional compilation.
 
@@ -22,7 +21,7 @@ Conditionally compiling this to support windows correctly bloats our code with a
 Now that doesn't mean this isn't interesting, on the contrary, but we'll also experience first hand some of the difficulties of supporting multiple platforms when doing everything from scratch.
 {% endhint %}
 
-### Additional callee saved \(non-volatile\) registers
+## Additional callee saved \(non-volatile\) registers
 
 The first thing I mentioned is that windows wants to save more data during context switches, in particular the XMM6-XMM15 registers. It's actually [mentioned specifically in the reference](https://docs.microsoft.com/en-us/cpp/build/x64-software-conventions?view=vs-2019#register-usage) so this is just adding more fields to our `ThreadContext` struct. This is very easy now that we've done it once before.
 
@@ -53,19 +52,19 @@ struct ThreadContext {
 }
 ```
 
-### The Thread Information Block
+## The Thread Information Block
 
 The second part is poorly documented. I've actually struggled to verify exactly how skipping this will cause a failure on modern Windows but there's [enough references to it](https://probablydance.com/2013/02/20/handmade-coroutines-for-windows/) around from trustworthy sources that I'm in no doubt we need to go through this.
 
 You see, Windows wants to store some information about the currently running thread in what it calls the `Thread Information Block`, referred to as `NT_TIB`. Specifically it wants access to information about the `Stack Base`and the `Stack Limit`in the `%gs`register.
 
 {% hint style="info" %}
-What is the GS register you might ask? 
+What is the GS register you might ask?
 
 The answer I found was a bit perplexing. Apparently these segment registers, GS on x64, and FS on x86 was intended by Intel to [allow programs to access many different segments of memory](https://stackoverflow.com/questions/10810203/what-is-the-fs-gs-register-intended-for) that were meant to be part of a persistent virtual store. Modern operating systems doesn't use these registers this way as we can only access our own process memory \(which appear as a "flat" memory to us as programmers\). Back when it wasn't clear that this would be the prevailing model, these registers would allow for different implementations by different operating systems. See the [Wikipedia article on the Multics operating system](https://en.wikipedia.org/wiki/Multics) if you're curious.
 {% endhint %}
 
-That means that these segment registers are freely used by operating systems for what they deem appropriate. Windows stores information about the currently running thread in the GS register, and Linux uses these registers for thread local storage. 
+That means that these segment registers are freely used by operating systems for what they deem appropriate. Windows stores information about the currently running thread in the GS register, and Linux uses these registers for thread local storage.
 
 When we switch threads, we should provide the information it expects about our [Stack Base and our Stack Limit](https://en.wikipedia.org/wiki/Win32_Thread_Information_Block).
 
@@ -108,10 +107,9 @@ Notice we use the `#[cfg(target_os="windows")]` attribute here on all the Window
 
 I named the fields `stack_start` and `stack_end` since I find that easier to mentally parse since we know the stack starts on the top and grows downwards to the bottom.
 
-
 Now to implement this we need to make a change to our `spawn()` function to actually provide this information:
 
-### The Windows stack
+## The Windows stack
 
 ![https://docs.microsoft.com/en-us/cpp/build/stack-usage?view=vs-2019\#stack-allocation](.gitbook/assets/image%20%281%29.png)
 
@@ -135,7 +133,7 @@ Now to implement this we need to make a change to our `spawn()`function to actua
 
         // see: https://docs.microsoft.com/en-us/cpp/build/stack-usage?view=vs-2019#stack-allocation
         unsafe {
-            ptr::write(s_ptr.offset((size - 34) as isize) as *mut u64, guard as u64);
+            ptr::write(s_ptr.offset((size - 24) as isize) as *mut u64, guard as u64);
             ptr::write(s_ptr.offset((size - 32) as isize) as *mut u64, f as u64);
             available.ctx.rsp = s_ptr.offset((size - 32) as isize) as u64;
             available.ctx.stack_start = s_ptr.offset(size as isize) as u64;
@@ -219,11 +217,11 @@ As you see, our code gets just a little bit longer. It's not difficult once you'
 Our inline assembly won't let us `mov` from one memory offset to another memory offset so we need to go via a register. I chose the`rax` register \(the default register for the return value\) but could have chosen any general purpose register for this.
 {% endhint %}
 
-### Conclusion
+## Conclusion
 
 So this is all we needed to do. As you see we don't really do anything new here, the difficult part is figuring out how Windows works and what it expects, but now that we have done our job properly we should have a pretty complete context switch for all three platforms.
 
-### Final code
+## Final code
 
 I've collected all the code we need to compile differently for Windows at the bottom so you don't have to read the first 200 lines of code since that is unchanged from what we in the previous chapters. I hope you understand why I chose to dedicate a separate chapter for this.
 
@@ -390,7 +388,7 @@ unsafe fn switch(old: *mut ThreadContext, new: *const ThreadContext) {
         mov     %r12, 0x20($0)
         mov     %rbx, 0x28($0)
         mov     %rbp, 0x30($0)
-   
+
         mov     0x00($1), %rsp
         mov     0x08($1), %r15
         mov     0x10($1), %r14
@@ -414,7 +412,7 @@ fn main() {
         println!("THREAD 1 STARTING");
         let id = 1;
         for i in 0..10 {
-            println!("thread: {} counter: {}", id, i);
+            println!("thread: {} counter: {}", id, i);
             yield_thread();
         }
         println!("THREAD 1 FINISHED");
@@ -423,7 +421,7 @@ fn main() {
         println!("THREAD 2 STARTING");
         let id = 2;
         for i in 0..15 {
-            println!("thread: {} counter: {}", id, i);
+            println!("thread: {} counter: {}", id, i);
             yield_thread();
         }
         println!("THREAD 2 FINISHED");

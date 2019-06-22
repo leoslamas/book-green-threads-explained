@@ -46,14 +46,14 @@ All the code I provide here is in a single file and has no dependencies which me
 
 ## Portability and issues
 
-Currently there is an issue I have with the `asm!`macro that doesn't compile in release mode. It seems to be related to the `"=m"`constraint I use in the inline macro. 
+Currently there is an issue I have with the `asm!`macro that doesn't compile in release mode. It seems to be related to the `"=m"`constraint I use in the inline macro.
 
 **Edit 2019-06-21:**  
 I've decided to work around this and change the inline assembly to compile and run on release builds.
 
 I've tested the code on OSX, Linux and Windows.
 
-## Disclaimer  <a id="docs-internal-guid-12e6c217-7fff-3de7-4bee-4532b47ef574"></a>
+## Disclaimer   <a id="docs-internal-guid-12e6c217-7fff-3de7-4bee-4532b47ef574"></a>
 
 I'm not trying to make a perfect implementation here. I'm cutting corners to get down to the essence and fit it into what was originally intended to be an article but expanded into a small book. This is not the best way of displaying Rusts greatest strengths, its safety guarantees, but it does show an interesting use of Rust and the code is mostly pretty clean and easy to follow.
 
@@ -61,12 +61,11 @@ However, if you spot places where I can make the code safer without making it si
 
 ## Credits
 
-[Quentin Carbonneaux](https://github.com/mpu) wrote an [nice article](https://c9x.me/articles/gthreads/intro.html) back in 2013 which I used as inspiration for the main code example.
+[Quentin Carbonneaux](https://github.com/mpu) wrote an [nice article](https://c9x.me/articles/gthreads/intro.html) back in 2013 which I used as inspiration for the main code example. Thanks to [nickelpro](https://github.com/nickelpro) for help and feedback on Windows support.
 
 ## Edits
 
 2019-06-18: New chapter implementing a proper Windows support
-
 
 2019-06-21: Rather substantial change and cleanup. An issue was reported that Valgrind reported some troubles with the code and crashed. This is now fixed and there are currently no unsolved issues. In addition, the code now runs on both `debug`and `release`builds without any issues on all platforms. Thanks to everyone for reporting issues they found.
 

@@ -26,7 +26,7 @@ Windows has a slightly different convention. On Windows the registers XMM6:XMM15
 There are one more subtle difference as well that you can read about in [Appendix: Supporting Windows](supporting-windows.md) where we go through everything. You can follow along anyway, since everything will work on Windows, but it will not be a correct implementation.
 {% endhint %}
 
-#### A super quick introduction to Assembly <a id="docs-internal-guid-bc1ce7bf-7fff-2c5d-a4d5-c91055081781"></a>
+## A super quick introduction to Assembly  <a id="docs-internal-guid-bc1ce7bf-7fff-2c5d-a4d5-c91055081781"></a>
 
 First and foremost. Assembly language is not very portable, each CPU might have a special set of instructions, however some are common on most desktop computers today.
 
@@ -48,7 +48,7 @@ Assembly has a strong backwards compatibility guarantee. That's why you will see
 
 As you can see, this is basically watching the history of CPUs evolve in front of us. Since most CPUs today are 64 bits, we will use the 64 bit registers in our code.
 
-The `word` size in assembly also has historical reasons. It stems from the time when the CPU had 16 bit data buses, so a `word` is 16 bits. This is relevant because in the AT&T dialect you will see many instructions suffixed with "q" \(quad-word\), or "l" \(long-word\). So a `movq` would mean a move of 4 \* 16 bits = 64 bits. 
+The `word` size in assembly also has historical reasons. It stems from the time when the CPU had 16 bit data buses, so a `word` is 16 bits. This is relevant because in the AT&T dialect you will see many instructions suffixed with "q" \(quad-word\), or "l" \(long-word\). So a `movq` would mean a move of 4 \* 16 bits = 64 bits.
 
 A plain `mov` will use the size of the register you use. This is the standard in the Intel dialect and the one we will use in our code.
 
