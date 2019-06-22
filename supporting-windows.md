@@ -1,6 +1,6 @@
 # Appendix: Supporting Windows
 
-Our example works for both OSX, Linux and Windows, but as I have pointed out, our Windows implementation is not correct even though it’s working. Since I've been quite commited to make this work on all three platforms, I’ll go through what we need to do in this chapter.
+Our example works for both OSX, Linux and Windows, but as I have pointed out, our Windows implementation is not correct even though it's working. Since I've been quite commited to make this work on all three platforms, I'll go through what we need to do in this chapter.
 
 You might wonder why I didn't include this in the original code, and the reason for that is that this is really not at all that relevant for explaining the main concepts I wanted to explore.
 
@@ -14,17 +14,17 @@ Here I'm trying to go a bit further here to explore how we should set up the sta
 
 ### What's special with Windows
 
-The reason I don’t consider this important enough to implement in the main example is that that windows has more `callee saved` registers, or `non-volatile`registers as they call it in addition to one rather poorly documented quirk that we need to account for, so what we really do is just to save more data when we do the context switch and that needs more conditional compilation.
+The reason I don't consider this important enough to implement in the main example is that that windows has more `callee saved` registers, or `non-volatile`registers as they call it in addition to one rather poorly documented quirk that we need to account for, so what we really do is just to save more data when we do the context switch and that needs more conditional compilation.
 
 {% hint style="info" %}
 Conditionally compiling this to support windows correctly bloats our code with almost 50 % without adding much to what we need for a basic understanding.
 
-Now that doesn't mean this isn't interesting, on the contrary, but we’ll also experience first hand some of the difficulties of supporting multiple platforms when doing everything from scratch.
+Now that doesn't mean this isn't interesting, on the contrary, but we'll also experience first hand some of the difficulties of supporting multiple platforms when doing everything from scratch.
 {% endhint %}
 
 ### Additional callee saved \(non-volatile\) registers
 
-The first thing I mentioned is that windows wants to save more data during context switches, in particular the XMM6-XMM15 registers. it’s actually [mentioned specifically in the reference](https://docs.microsoft.com/en-us/cpp/build/x64-software-conventions?view=vs-2019#register-usage) so this is just adding more fields to our `ThreadContext` struct. This is very easy now that we’ve done it once before.
+The first thing I mentioned is that windows wants to save more data during context switches, in particular the XMM6-XMM15 registers. it's actually [mentioned specifically in the reference](https://docs.microsoft.com/en-us/cpp/build/x64-software-conventions?view=vs-2019#register-usage) so this is just adding more fields to our `ThreadContext` struct. This is very easy now that we've done it once before.
 
 Our ThreadContext now looks like this:
 
@@ -62,7 +62,7 @@ You see, Windows wants to store some information about the currently running thr
 {% hint style="info" %}
 What is the GS register you might ask? 
 
-The answer I found was a bit perplexing. Apparently these segment registers, GS on x64, and FS on x86 was intended by Intel to [allow programs to access many different segments of memory](https://stackoverflow.com/questions/10810203/what-is-the-fs-gs-register-intended-for) that were meant to be part of a persistent virtual store. Modern operating systems doesn't use these registers this way as we can only access our own process memory \(which appear as a “flat” memory to us as programmers\). Back when it wasn't clear that this would be the prevailing model, these registers would allow for different implementations by different operating systems. See the [Wikipedia article on the Multics operating system](https://en.wikipedia.org/wiki/Multics) if you're curious.
+The answer I found was a bit perplexing. Apparently these segment registers, GS on x64, and FS on x86 was intended by Intel to [allow programs to access many different segments of memory](https://stackoverflow.com/questions/10810203/what-is-the-fs-gs-register-intended-for) that were meant to be part of a persistent virtual store. Modern operating systems doesn't use these registers this way as we can only access our own process memory \(which appear as a "flat" memory to us as programmers\). Back when it wasn't clear that this would be the prevailing model, these registers would allow for different implementations by different operating systems. See the [Wikipedia article on the Multics operating system](https://en.wikipedia.org/wiki/Multics) if you're curious.
 {% endhint %}
 
 That means that these segment registers are freely used by operating systems for what they deem appropriate. Windows stores information about the currently running thread in the GS register, and Linux uses these registers for thread local storage. 
@@ -103,7 +103,7 @@ struct ThreadContext {
 {% endcode-tabs %}
 
 {% hint style="info" %}
-Notice we use the `#[cfg(target_os="windows")]` attribute here on all the Windows specific functions and structs, which mean we need to give our “original” definitions an attribute that makes sure it compiles them for all other targets than Windows: `[cfg(not(target_os="windows"))].`
+Notice we use the `#[cfg(target_os="windows")]` attribute here on all the Windows specific functions and structs, which mean we need to give our "original" definitions an attribute that makes sure it compiles them for all other targets than Windows: `[cfg(not(target_os="windows"))].`
 {% endhint %}
 
 I named the fields `stack_start` and `stack_end` since I find that easier to mentally parse since we know the stack starts on the top and grows downwards to the bottom.
@@ -213,7 +213,7 @@ unsafe fn switch(old: *mut ThreadContext, new: *const ThreadContext) {
 }
 ```
 
-As you see, our code gets just a little bit longer. it’s not difficult once you've figured out what to store where, but it does add a lot of code.
+As you see, our code gets just a little bit longer. it's not difficult once you've figured out what to store where, but it does add a lot of code.
 
 {% hint style="warning" %}
 Our inline assembly won't let us `mov`from one memory offset to another memory offset so we need to go via a register. I chose the`rax`register \(the default register for the return value\) but could have chosen any general purpose register for this.
@@ -221,11 +221,11 @@ Our inline assembly won't let us `mov`from one memory offset to another memory o
 
 ### Conclusion
 
-So this is all we needed to do. As you see we don’t really do anything new here, the difficult part is figuring out how Windows works and what it expects, but now that we have done our job properly we should have a pretty complete context switch for all three platforms.
+So this is all we needed to do. As you see we don't really do anything new here, the difficult part is figuring out how Windows works and what it expects, but now that we have done our job properly we should have a pretty complete context switch for all three platforms.
 
 ### Final code
 
-I've collected all the code we need to compile differently for Windows at the bottom so you don’t have to read the first 200 lines of code since that is unchanged from what we in the previous chapters. I hope you understand why I chose to dedicate a separate chapter for this.
+I've collected all the code we need to compile differently for Windows at the bottom so you don't have to read the first 200 lines of code since that is unchanged from what we in the previous chapters. I hope you understand why I chose to dedicate a separate chapter for this.
 
 ```rust
 #![feature(asm)]

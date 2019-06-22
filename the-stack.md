@@ -4,15 +4,15 @@
 
 This is important to know. A computer only has memory, it doesn't have a special "stack" memory and a "heap" memory, it's all part of the same memory.
 
-The difference is how this memory is accessed and used. The stack support simple push/pop instructions on a contiguous part of memory, that’s what makes it fast to use. The heap memory is allocated by a memory allocator on demand and can be scattered around in different locations.
+The difference is how this memory is accessed and used. The stack support simple push/pop instructions on a contiguous part of memory, that's what makes it fast to use. The heap memory is allocated by a memory allocator on demand and can be scattered around in different locations.
 
-We’ll not go through the differences between the stack and the heap here, since there are numerous articles explaining them in detail including a chapter in [The Rust Programming Language](https://doc.rust-lang.org/stable/book/ch04-01-what-is-ownership.html#the-stack-and-the-heap).
+We'll not go through the differences between the stack and the heap here, since there are numerous articles explaining them in detail including a chapter in [The Rust Programming Language](https://doc.rust-lang.org/stable/book/ch04-01-what-is-ownership.html#the-stack-and-the-heap).
 
 ### What does the stack look like
 
 ![Simplified view of a stack](.gitbook/assets/image.png)
 
-Let’s start with a simplified view of the stack. A 64 bit CPU will read 8 bytes at a time, even though the natural way for us to see a stack is a long line of `u8`so when we pass a pointer we need to make sure we pass in a pointer to either address `0016`, `0008` or `0000` in the example above.
+Let's start with a simplified view of the stack. A 64 bit CPU will read 8 bytes at a time, even though the natural way for us to see a stack is a long line of `u8`so when we pass a pointer we need to make sure we pass in a pointer to either address `0016`, `0008` or `0000` in the example above.
 
 The stack grows downwards, so we start at the top and work our way down.
 
@@ -82,7 +82,7 @@ mem: 94846750517824, val: 0
 I LOVE WAKING UP ON A NEW STACK!
 ```
 
-I’ve printed out the memory addresses as u64 here so it’s easier to parse if you’re not very familiar with hex.
+I've printed out the memory addresses as u64 here so it's easier to parse if you're not very familiar with hex.
 
 The first thing to note is that this is just a contiguous piece of memory, starting at address `94846750517824` and ending on `94846750517871`.
 
@@ -91,22 +91,22 @@ The addresses `94846750517856`to `94846750517863`is of special interest for us. 
 In other words the values `240, 205, 252, 56, 67, 86, 0, 0` is the pointer to our `hello()` function written as `u8`values.
 
 {% hint style="info" %}
-An interesting side note here is that the order the CPU writes an `u64` as `u8` bytes is dependent on it’s endianness. I’ll simply refer to the [wikipedia article](https://en.wikipedia.org/wiki/Endianness), but if you try to parse these numbers manually you’ll have to bear this in mind.
+An interesting side note here is that the order the CPU writes an `u64` as `u8` bytes is dependent on it's endianness. I'll simply refer to the [wikipedia article](https://en.wikipedia.org/wiki/Endianness), but if you try to parse these numbers manually you'll have to bear this in mind.
 {% endhint %}
 
 As we write more complex functions our extremely small 48 byte stack will soon run out of space, you see, as we run functions we write in Rust our code will instruct the CPU to push and pop values on our stack to execute our program.
 
 ### Stack sizes
 
-When you start a process in most modern operating systems the standard stack size is normally 8 MB but it can be configured differently, this is enough for most programs but it’s up to the programmer to make sure we don’t use more than we have. This is the cause of the dreaded “stack overflow” that most of us have experienced.
+When you start a process in most modern operating systems the standard stack size is normally 8 MB but it can be configured differently, this is enough for most programs but it's up to the programmer to make sure we don't use more than we have. This is the cause of the dreaded "stack overflow" that most of us have experienced.
 
 However, when we can control the stacks ourselves we can choose the size we want. 8 MB for each context is way more than we need when running simple functions in a web server for example, so by reducing the stack size we can have millions of Green Threads running on a machine, while we run out of memory a lot sooner using stacks provided by the operating system.
 
 ### Growable stacks
 
-Some implementations use growable stacks. This lets us allocate a small part of memory that’s enough stack space for most tasks, but instead of causing a stack overflow when we use all of our stack it allocates a new an larger stack and moves everything from the stack it outgrew to a new and larger stack where it can resume the program execution.
+Some implementations use growable stacks. This lets us allocate a small part of memory that's enough stack space for most tasks, but instead of causing a stack overflow when we use all of our stack it allocates a new an larger stack and moves everything from the stack it outgrew to a new and larger stack where it can resume the program execution.
 
-GO is an example of this. It starts out with a 8 KB stack and when it runs out of space it reallocates to a larger stack. As in every thing in programming this has some trade-offs, all the pointers you have needs to be updated correctly, and this is not an easy task. If you're more interested in how GO handles it’s stack \(which is a good example of the use and trade-offs using a growable stack\) I’ll refer you to this article: [https://blog.cloudflare.com/how-stacks-are-handled-in-go/](https://blog.cloudflare.com/how-stacks-are-handled-in-go/).
+GO is an example of this. It starts out with a 8 KB stack and when it runs out of space it reallocates to a larger stack. As in every thing in programming this has some trade-offs, all the pointers you have needs to be updated correctly, and this is not an easy task. If you're more interested in how GO handles it's stack \(which is a good example of the use and trade-offs using a growable stack\) I'll refer you to this article: [https://blog.cloudflare.com/how-stacks-are-handled-in-go/](https://blog.cloudflare.com/how-stacks-are-handled-in-go/).
 
 {% hint style="info" %}
 Note one thing that will be important later: We used a normal `Vec<u8>` from Rusts standard library. It is very convenient for us but this has some problems. Among others, we have no guarantee that it will stay in the same location in memory.
@@ -114,7 +114,7 @@ Note one thing that will be important later: We used a normal `Vec<u8>` from Rus
 As you might understand, if the stack is moved to a different address space our program will crash since all our pointers will be invalid. Something as simple as doing a `push()` to our stack might trigger an expansion and when a `Vec` expands it asks for a new, and larger, piece of memory and moves the values over.
 {% endhint %}
 
-Ok, now that we’ve gone through the basics of how a stack looks and works and we are ready to move on to implementing our green threads. You've already done much of the hard work so I promise more code now.
+Ok, now that we've gone through the basics of how a stack looks and works and we are ready to move on to implementing our green threads. You've already done much of the hard work so I promise more code now.
 
 ### How to set up the stack
 
@@ -139,7 +139,7 @@ Unfortunately to show this I had to increase the stack size to 1024 bytes to all
 However, I made a altered version of our example that you can run which prints out two text files one `BEFORE.txt`that prints out our stack before we switch over to it and one `AFTER.txt`that prints out the stack after we switched. You can then see for yourself how the stack now is alive and used by our code.
 
 {% hint style="info" %}
-If you see anything you don’t recognize in this code, relax, we will go through them thoroughly very soon.
+If you see anything you don't recognize in this code, relax, we will go through them thoroughly very soon.
 {% endhint %}
 
 ```rust
