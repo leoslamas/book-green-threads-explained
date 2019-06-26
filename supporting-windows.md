@@ -25,6 +25,8 @@ Now that doesn't mean this isn't interesting, on the contrary, but we'll also ex
 
 The first thing I mentioned is that windows wants to save more data during context switches, in particular the XMM6-XMM15 registers. It's actually [mentioned specifically in the reference](https://docs.microsoft.com/en-us/cpp/build/x64-software-conventions?view=vs-2019#register-usage) so this is just adding more fields to our `ThreadContext` struct. This is very easy now that we've done it once before.
 
+However, there is one caveat: the `XMM`registers are 128 bits, and not 64. Rust has a `u128`type but we'll use `[u64;2]`instead to avoid some alignment issues that we _might_ get otherwise. Don't worry, I'll explain this further down.
+
 Our ThreadContext now looks like this:
 
 ```rust
@@ -39,16 +41,16 @@ struct ThreadContext {
     r12: u64,
     rbx: u64,
     rbp: u64,
-    xmm6: u64,
-    xmm7: u64,
-    xmm8: u64,
-    xmm9: u64,
-    xmm10: u64,
-    xmm11: u64,
-    xmm12: u64,
-    xmm13: u64,
-    xmm14: u64,
-    xmm15: u64,
+    xmm6: [u64; 2],
+    xmm7: [u64; 2],
+    xmm8: [u64; 2],
+    xmm9: [u64; 2],
+    xmm10: [u64; 2],
+    xmm11: [u64; 2],
+    xmm12: [u64; 2],
+    xmm13: [u64; 2],
+    xmm14: [u64; 2],
+    xmm15: [u64; 2],
 }
 ```
 
@@ -84,16 +86,16 @@ struct ThreadContext {
     r12: u64,
     rbx: u64,
     rbp: u64,
-    xmm6: u64,
-    xmm7: u64,
-    xmm8: u64,
-    xmm9: u64,
-    xmm10: u64,
-    xmm11: u64,
-    xmm12: u64,
-    xmm13: u64,
-    xmm14: u64,
-    xmm15: u64,
+    xmm6: [u64; 2],
+    xmm7: [u64; 2],
+    xmm8: [u64; 2],
+    xmm9: [u64; 2],
+    xmm10: [u64; 2],
+    xmm11: [u64; 2],
+    xmm12: [u64; 2],
+    xmm13: [u64; 2],
+    xmm14: [u64; 2],
+    xmm15: [u64; 2],
     stack_start: u64,
     stack_end: u64,
 }
@@ -113,7 +115,7 @@ Now to implement this we need to make a change to our `spawn()` function to actu
 
 ![https://docs.microsoft.com/en-us/cpp/build/stack-usage?view=vs-2019\#stack-allocation](.gitbook/assets/image%20%281%29.png)
 
-As you see since Rust sets up our stack frames, we only need to care about where to put our `%rsp`and the return address. Pretty much the same as in the psABI. The differences between Win64 and psABI are elsewhere and Rust takes care of all these differences for us.
+You see, since Rust sets up our stack frames, we only need to care about where to put our `%rsp`and the return address and this looks pretty much the same as in the psABI. The differences between Win64 and psABI are elsewhere and Rust takes care of all these differences for us.
 
 Now to implement this we need to make a change to our `spawn()`function to actually provide this information and set up our stack.
 
@@ -149,7 +151,64 @@ Now to implement this we need to make a change to our `spawn()`function to actua
 
 As you see we provide a pointer to the start of our stack and a pointer to the end of our stack.
 
-Last we need to change our `swtich()`function and update our assembly:
+#### Possible alignment issues
+
+Well, this is supposed to be hard, remember? Windows does not disappoint us making things too easy. You see, when we move data from a 128 bit register we need to use some special assembly instructions. There are several of them that _mostly_ do the same: 
+
+* `movdqa` [move double quad word aligned](https://www.felixcloutier.com/x86/movdqa:vmovdqa32:vmovdqa64)
+* `movdqu`[move double quad word unaligned](https://www.felixcloutier.com/x86/movdqu:vmovdqu8:vmovdqu16:vmovdqu32:vmovdqu64)
+* `movaps`[move aligned packed single-precision floating point value](https://www.felixcloutier.com/x86/movaps)
+* `movups`[move unaligned packed single-precision floating point value](https://www.felixcloutier.com/x86/movups)
+
+As you see most method has an `aligned`and and `unaligned`variant. The difference here is that `*ps`type instructions are targeting floating point values and the `*dq/*dq` type instructions are targeting integer values. Now both will work, but if you clicked on the Microsoft reference you probably noticed that the `XMM` are used for floating point values so the `*ps`type instructions are the right ones for us to use.
+
+The `aligned`versions are slightly faster under most circumstances and would be preferred in a context switch so we use them although they expose us for some extra complexity. By aligned, we mean that the memory they read/write from/to is 16 byte aligned. Where have we encountered this before? If you remember, our `%rsp` value needed to be 16 byte aligned as well.
+
+Now, the way I solve this is to push the fields that requires alignment to the start of our struct, and add a new attribute `#[repr(align(16))]`.
+
+{% hint style="info" %}
+The `repr(align(n))`attribute ensures that our struct starts at a 16 byte aligned memory address, so when we write to `XMM6`in the start of our assembly it's already 16 byte aligned, and since 128 is divisible with 16 so are the rest of the fields.
+
+But, and this can be important, since we now have two different field sizes our compiler might choose to "pad" our fields, now that doesn't happen right now but pushing our larger fields to the start will minimize the risk of that happening at a later time.
+
+We also avoid manually adding a padding member to our struct since we have 7`u64`fields before our`XMM`fields preventing them from aligning to 16 \(remember, `repr(C)`attribute guarantees that the compiler will not reorder our fields\).
+{% endhint %}
+
+Our `Threadcontext`ends up like this after our changes:
+
+{% code-tabs %}
+{% code-tabs-item title="ThreadContext" %}
+```rust
+#[cfg(target_os = "windows")]
+#[derive(Debug, Default)]
+#[repr(C)]
+#[repr(align(16))]
+struct ThreadContext {
+    xmm6: [u64; 2],
+    xmm7: [u64; 2],
+    xmm8: [u64; 2],
+    xmm9: [u64; 2],
+    xmm10: [u64; 2],
+    xmm11: [u64; 2],
+    xmm12: [u64; 2],
+    xmm13: [u64; 2],
+    xmm14: [u64; 2],
+    xmm15: [u64; 2],
+    rsp: u64,
+    r15: u64,
+    r14: u64,
+    r13: u64,
+    r12: u64,
+    rbx: u64,
+    rbp: u64,
+    stack_start: u64,
+    stack_end: u64,
+}
+```
+{% endcode-tabs-item %}
+{% endcode-tabs %}
+
+Last we need to change our `swtich()`function and update our assembly. After all this explanation this is pretty easy:
 
 ```rust
 #[cfg(target_os = "windows")]
@@ -157,49 +216,49 @@ Last we need to change our `swtich()`function and update our assembly:
 #[inline(never)]
 unsafe fn switch(old: *mut ThreadContext, new: *const ThreadContext) {
     asm!("
-        mov     %rsp, 0x00($0)
-        mov     %r15, 0x08($0)
-        mov     %r14, 0x10($0)
-        mov     %r13, 0x18($0)
-        mov     %r12, 0x20($0)
-        mov     %rbx, 0x28($0)
-        mov     %rbp, 0x30($0)
-        mov     %xmm6, 0x38($0)
-        mov     %xmm7, 0x40($0)
-        mov     %xmm8, 0x48($0)
-        mov     %xmm9, 0x50($0)
-        mov     %xmm10, 0x58($0)
-        mov     %xmm11, 0x60($0)
-        mov     %xmm12, 0x68($0)
-        mov     %xmm13, 0x70($0)
-        mov     %xmm14, 0x78($0)
-        mov     %xmm15, 0x80($0)
-        mov     %gs:0x08, %rax    
-        mov     %rax, 0x88($0)  
-        mov     %gs:0x10, %rax    
-        mov     %rax, 0x90($0)  
+        movaps      %xmm6, 0x00($0)
+        movaps      %xmm7, 0x10($0)
+        movaps      %xmm8, 0x20($0)
+        movaps      %xmm9, 0x30($0)
+        movaps      %xmm10, 0x40($0)
+        movaps      %xmm11, 0x50($0)
+        movaps      %xmm12, 0x60($0)
+        movaps      %xmm13, 0x70($0)
+        movaps      %xmm14, 0x80($0)
+        movaps      %xmm15, 0x90($0)
+        mov         %rsp, 0xa0($0)
+        mov         %r15, 0xa8($0)
+        mov         %r14, 0xb0($0)
+        mov         %r13, 0xb8($0)
+        mov         %r12, 0xc0($0)
+        mov         %rbx, 0xc8($0)
+        mov         %rbp, 0xd0($0)
+        mov         %gs:0x08, %rax    
+        mov         %rax, 0xd8($0)  
+        mov         %gs:0x10, %rax    
+        mov         %rax, 0xe0($0)  
 
-        mov     0x00($1), %rsp
-        mov     0x08($1), %r15
-        mov     0x10($1), %r14
-        mov     0x18($1), %r13
-        mov     0x20($1), %r12
-        mov     0x28($1), %rbx
-        mov     0x30($1), %rbp
-        mov     0x38($1), %xmm6
-        mov     0x40($1), %xmm7
-        mov     0x48($1), %xmm8
-        mov     0x50($1), %xmm9
-        mov     0x58($1), %xmm10
-        mov     0x60($1), %xmm11
-        mov     0x68($1), %xmm12
-        mov     0x70($1), %xmm13
-        mov     0x78($1), %xmm14
-        mov     0x80($1), %xmm15
-        mov     0x88($1), %rax
-        mov     %rax, %gs:0x08  
-        mov     0x90($1), %rax 
-        mov     %rax, %gs:0x10  
+        movaps      0x00($1), %xmm6
+        movaps      0x10($1), %xmm7
+        movaps      0x20($1), %xmm8
+        movaps      0x30($1), %xmm9
+        movaps      0x40($1), %xmm10
+        movaps      0x50($1), %xmm11
+        movaps      0x60($1), %xmm12
+        movaps      0x70($1), %xmm13
+        movaps      0x80($1), %xmm14
+        movaps      0x90($1), %xmm15
+        mov         0xa0($1), %rsp
+        mov         0xa8($1), %r15
+        mov         0xb0($1), %r14
+        mov         0xb8($1), %r13
+        mov         0xc0($1), %r12
+        mov         0xc8($1), %rbx
+        mov         0xd0($1), %rbp
+        mov         0xd8($1), %rax
+        mov         %rax, %gs:0x08  
+        mov         0xe0($1), %rax 
+        mov         %rax, %gs:0x10  
 
         ret
         "
@@ -388,7 +447,7 @@ unsafe fn switch(old: *mut ThreadContext, new: *const ThreadContext) {
         mov     %r12, 0x20($0)
         mov     %rbx, 0x28($0)
         mov     %rbp, 0x30($0)
-
+   
         mov     0x00($1), %rsp
         mov     0x08($1), %r15
         mov     0x10($1), %r14
@@ -412,7 +471,7 @@ fn main() {
         println!("THREAD 1 STARTING");
         let id = 1;
         for i in 0..10 {
-            println!("thread: {} counter: {}", id, i);
+            println!("thread: {} counter: {}", id, i);
             yield_thread();
         }
         println!("THREAD 1 FINISHED");
@@ -421,7 +480,7 @@ fn main() {
         println!("THREAD 2 STARTING");
         let id = 2;
         for i in 0..15 {
-            println!("thread: {} counter: {}", id, i);
+            println!("thread: {} counter: {}", id, i);
             yield_thread();
         }
         println!("THREAD 2 FINISHED");
@@ -433,7 +492,18 @@ fn main() {
 #[cfg(target_os = "windows")]
 #[derive(Debug, Default)]
 #[repr(C)]
+#[repr(align(16))]
 struct ThreadContext {
+    xmm6: [u64; 2],
+    xmm7: [u64; 2],
+    xmm8: [u64; 2],
+    xmm9: [u64; 2],
+    xmm10: [u64; 2],
+    xmm11: [u64; 2],
+    xmm12: [u64; 2],
+    xmm13: [u64; 2],
+    xmm14: [u64; 2],
+    xmm15: [u64; 2],
     rsp: u64,
     r15: u64,
     r14: u64,
@@ -441,16 +511,6 @@ struct ThreadContext {
     r12: u64,
     rbx: u64,
     rbp: u64,
-    xmm6: u64,
-    xmm7: u64,
-    xmm8: u64,
-    xmm9: u64,
-    xmm10: u64,
-    xmm11: u64,
-    xmm12: u64,
-    xmm13: u64,
-    xmm14: u64,
-    xmm15: u64,
     stack_start: u64,
     stack_end: u64,
 }
@@ -471,10 +531,11 @@ impl Runtime {
         unsafe {
             ptr::write(s_ptr.offset((size - 24) as isize) as *mut u64, guard as u64);
             ptr::write(s_ptr.offset((size - 32) as isize) as *mut u64, f as u64);
-            available.ctx.rsp = s_ptr.offset((size - 24) as isize) as u64;
+            available.ctx.rsp = s_ptr.offset((size - 32) as isize) as u64;
             available.ctx.stack_start = s_ptr.offset(size as isize) as u64;
         }
         available.ctx.stack_end = s_ptr as *const u64 as u64;
+
         available.state = State::Ready;
     }
 }
@@ -486,49 +547,49 @@ impl Runtime {
 #[inline(never)]
 unsafe fn switch(old: *mut ThreadContext, new: *const ThreadContext) {
     asm!("
-        mov     %rsp, 0x00($0)
-        mov     %r15, 0x08($0)
-        mov     %r14, 0x10($0)
-        mov     %r13, 0x18($0)
-        mov     %r12, 0x20($0)
-        mov     %rbx, 0x28($0)
-        mov     %rbp, 0x30($0)
-        mov     %xmm6, 0x38($0)
-        mov     %xmm7, 0x40($0)
-        mov     %xmm8, 0x48($0)
-        mov     %xmm9, 0x50($0)
-        mov     %xmm10, 0x58($0)
-        mov     %xmm11, 0x60($0)
-        mov     %xmm12, 0x68($0)
-        mov     %xmm13, 0x70($0)
-        mov     %xmm14, 0x78($0)
-        mov     %xmm15, 0x80($0)
-        mov     %gs:0x08, %rax    
-        mov     %rax, 0x88($0)  
-        mov     %gs:0x10, %rax    
-        mov     %rax, 0x90($0)  
+        movaps      %xmm6, 0x00($0)
+        movaps      %xmm7, 0x10($0)
+        movaps      %xmm8, 0x20($0)
+        movaps      %xmm9, 0x30($0)
+        movaps      %xmm10, 0x40($0)
+        movaps      %xmm11, 0x50($0)
+        movaps      %xmm12, 0x60($0)
+        movaps      %xmm13, 0x70($0)
+        movaps      %xmm14, 0x80($0)
+        movaps      %xmm15, 0x90($0)
+        mov         %rsp, 0xa0($0)
+        mov         %r15, 0xa8($0)
+        mov         %r14, 0xb0($0)
+        mov         %r13, 0xb8($0)
+        mov         %r12, 0xc0($0)
+        mov         %rbx, 0xc8($0)
+        mov         %rbp, 0xd0($0)
+        mov         %gs:0x08, %rax    
+        mov         %rax, 0xd8($0)  
+        mov         %gs:0x10, %rax    
+        mov         %rax, 0xe0($0)  
 
-        mov     0x00($1), %rsp
-        mov     0x08($1), %r15
-        mov     0x10($1), %r14
-        mov     0x18($1), %r13
-        mov     0x20($1), %r12
-        mov     0x28($1), %rbx
-        mov     0x30($1), %rbp
-        mov     0x38($1), %xmm6
-        mov     0x40($1), %xmm7
-        mov     0x48($1), %xmm8
-        mov     0x50($1), %xmm9
-        mov     0x58($1), %xmm10
-        mov     0x60($1), %xmm11
-        mov     0x68($1), %xmm12
-        mov     0x70($1), %xmm13
-        mov     0x78($1), %xmm14
-        mov     0x80($1), %xmm15
-        mov     0x88($1), %rax
-        mov     %rax, %gs:0x08  
-        mov     0x90($1), %rax 
-        mov     %rax, %gs:0x10  
+        movaps      0x00($1), %xmm6
+        movaps      0x10($1), %xmm7
+        movaps      0x20($1), %xmm8
+        movaps      0x30($1), %xmm9
+        movaps      0x40($1), %xmm10
+        movaps      0x50($1), %xmm11
+        movaps      0x60($1), %xmm12
+        movaps      0x70($1), %xmm13
+        movaps      0x80($1), %xmm14
+        movaps      0x90($1), %xmm15
+        mov         0xa0($1), %rsp
+        mov         0xa8($1), %r15
+        mov         0xb0($1), %r14
+        mov         0xb8($1), %r13
+        mov         0xc0($1), %r12
+        mov         0xc8($1), %rbx
+        mov         0xd0($1), %rbp
+        mov         0xd8($1), %rax
+        mov         %rax, %gs:0x08  
+        mov         0xe0($1), %rax 
+        mov         %rax, %gs:0x10  
 
         ret
         "

@@ -69,3 +69,5 @@ However, if you spot places where I can make the code safer without making it si
 
 2019-06-21: Rather substantial change and cleanup. An issue was reported that Valgrind reported some troubles with the code and crashed. This is now fixed and there are currently no unsolved issues. In addition, the code now runs on both `debug`and `release`builds without any issues on all platforms. Thanks to everyone for reporting issues they found.
 
+2019-06-26: The Supporting Windows appendix treated the `XMM`fields as 64 bits, but they are 128 bits which was an oversight on my part. Correcting this added some interesting material to that chapter but unfortunately also some complexity. However, it's now corrected and explained.
+
