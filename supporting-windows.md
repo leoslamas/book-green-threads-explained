@@ -185,7 +185,7 @@ The `repr(align(n))`attribute ensures that our struct starts at a 16 byte aligne
 
 But, and this can be important, since we now have two different field sizes our compiler might choose to "pad" our fields, now that doesn't happen right now but pushing our larger fields to the start will minimize the risk of that happening at a later time.
 
-We also avoid manually adding a padding member to our struct since we have 7`u64`fields before our`XMM`fields preventing them from aligning to 16 \(remember, `repr(C)`attribute guarantees that the compiler will not reorder our fields\).
+We also avoid manually adding a padding member to our struct since we have 7`u64`fields before our`XMM`fields preventing them from aligning to 16 \(remember, the`repr(C)`attribute guarantees that the compiler will not reorder our fields\).
 {% endhint %}
 
 Our `Threadcontext`ends up like this after our changes:
