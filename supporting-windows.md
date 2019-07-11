@@ -168,7 +168,15 @@ Well, this is supposed to be hard, remember? Windows does not disappoint us maki
 
 As you see most method has an `aligned`and and `unaligned`variant. The difference here is that `*ps`type instructions are targeting floating point values and the `*dq/*dq` type instructions are targeting integer values. Now both will work, but if you clicked on the Microsoft reference you probably noticed that the `XMM` are used for floating point values so the `*ps`type instructions are the right ones for us to use.
 
-The `aligned`versions are slightly faster under most circumstances and would be preferred in a context switch so we use them although they expose us for some extra complexity. By aligned, we mean that the memory they read/write from/to is 16 byte aligned. Where have we encountered this before? If you remember, our `%rsp` value needed to be 16 byte aligned as well.
+The `aligned`versions have historically been slightly faster under most circumstances and would be preferred in a context switch, but the latest information I've read about this is **that they've been practically the same for the last 6 generations of CPUs regarding performance**. 
+
+{% hint style="info" %}
+If you want to read more about the cost for different instructions on newer and older processors, have a look at [Agner Fog's instruction tables](https://www.agner.org/optimize/instruction_tables.pdf).
+{% endhint %}
+
+However, since the aligned instructions are used in all the reference implementations I've encountered, we'll use them as well although they expose us for some extra complexity, we are still learning stuff aren't we? 
+
+By aligned, we mean that the memory they read/write from/to is 16 byte aligned. Where have we encountered this before? If you remember, our `%rsp` value needed to be 16 byte aligned as well.
 
 Now, the way I solve this is to push the fields that requires alignment to the start of our struct, and add a new attribute `#[repr(align(16))]`.
 
