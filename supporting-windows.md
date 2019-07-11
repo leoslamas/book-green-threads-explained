@@ -25,7 +25,7 @@ Now that doesn't mean this isn't interesting, on the contrary, but we'll also ex
 
 The first thing I mentioned is that windows wants to save more data during context switches, in particular the XMM6-XMM15 registers. It's actually [mentioned specifically in the reference](https://docs.microsoft.com/en-us/cpp/build/x64-software-conventions?view=vs-2019#register-usage) so this is just adding more fields to our `ThreadContext` struct. This is very easy now that we've done it once before.
 
-In addition to these registers `rdi`and `rsi`are nonvolatile on Windows \(on linux these registers are use for the first and second function arguments\), so we need to add these too.
+In addition to the `XMM`registers the `rdi`and `rsi`registers are nonvolatile on Windows which means they're callee saved \(on linux these registers are use for the first and second function arguments\), so we need to add these too.
 
 However, there is one caveat: the `XMM`registers are 128 bits, and not 64. Rust has a `u128`type but we'll use `[u64;2]`instead to avoid some alignment issues that we _might_ get otherwise. Don't worry, I'll explain this further down.
 
