@@ -176,7 +176,7 @@ If you want to read more about the cost for different instructions on newer and 
 
 However, since the aligned instructions are used in all the reference implementations I've encountered, we'll use them as well although they expose us for some extra complexity, we are still learning stuff aren't we? 
 
-By aligned, we mean that the memory they read/write from/to is 16 byte aligned. Where have we encountered this before? If you remember, our `%rsp` value needed to be 16 byte aligned as well.
+By aligned, we mean that the memory they read/write from/to is 16 byte aligned. 
 
 Now, the way I solve this is to push the fields that requires alignment to the start of our struct, and add a new attribute `#[repr(align(16))]`.
 
