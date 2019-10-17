@@ -214,7 +214,7 @@ Here we go through all the threads and see if anyone is in the `Ready` state whi
 If no thread is `Ready` we're all done. This is an extremely simple scheduler using only a round-robin algorithm, a real scheduler might have a much more sophisticated way of deciding what task to run next.
 
 {% hint style="info" %}
-This is a very naive implementation tailor made for our example. What happens if our thread is not ready to make progress \(not in a `Ready` state\) and still waiting for a response from i.e. a database?
+This is a very naive implementation tailor-made for our example. What happens if our thread is not ready to make progress \(not in a `Ready` state\) and still waiting for a response from i.e. a database?
 
 it's not too difficult to work around this, instead of running our code directly when a thread is `Ready` we could instead poll it for a status. For example it could return `IsReady` if it's really ready to run or `Pending` if it's waiting for some operation to finish. In the latter case we could just leave it in it's `Ready` state to get polled again later. Does this sound familiar? If you've read about how [Futures](https://rust-lang-nursery.github.io/futures-api-docs/0.3.0-alpha.16/futures/task/enum.Poll.html#variant.Pending) work in Rust, we are starting to connect some dots on how this all fits together.
 {% endhint %}
