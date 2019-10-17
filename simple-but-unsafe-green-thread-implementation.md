@@ -65,7 +65,7 @@ struct ThreadContext {
 }
 ```
 
-`Runtime` is going to be where our main entry point. We are basically going to create a very small, simple runtime to schedule and switch between our threads. The runtime holds an array of `Threads` and a `current` field to indicate which thread we are currently running.
+`Runtime` is going to be our main entry point. We are basically going to create a very small, simple runtime to schedule and switch between our threads. The runtime holds an array of `Threads` and a `current` field to indicate which thread we are currently running.
 
 `Thread` holds data for a thread. Each thread has an `id` so we can separate them from each other. The `stack` is similar to what we saw in our first example in earlier chapters. The `ctx` field is a context representing the data our CPU needs to resume where it left of on a stack, and a `state` which is our thread state.
 
