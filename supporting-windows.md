@@ -76,7 +76,8 @@ When we switch threads, we should provide the information it expects about our [
 
 Our `ThreadContext` now looks like this:
 
-{% code title="ThreadContext" %}
+{% code-tabs %}
+{% code-tabs-item title="ThreadContext" %}
 ```rust
 #[cfg(target_os="windows")]
 #[derive(Debug, Default)]
@@ -105,7 +106,8 @@ struct ThreadContext {
     stack_end: u64,
 }
 ```
-{% endcode %}
+{% endcode-tabs-item %}
+{% endcode-tabs %}
 
 {% hint style="info" %}
 Notice we use the `#[cfg(target_os="windows")]` attribute here on all the Windows specific functions and structs, which mean we need to give our "original" definitions an attribute that makes sure it compiles them for all other targets than Windows: `[cfg(not(target_os="windows"))].`
@@ -123,7 +125,8 @@ You see, since Rust sets up our stack frames, we only need to care about where t
 
 Now to implement this we need to make a change to our `spawn()`function to actually provide this information and set up our stack.
 
-{% code title="spawn" %}
+{% code-tabs %}
+{% code-tabs-item title="spawn" %}
 ```rust
     #[cfg(target_os = "windows")]
     pub fn spawn(&mut self, f: fn()) {
@@ -149,7 +152,8 @@ Now to implement this we need to make a change to our `spawn()`function to actua
     }
 }
 ```
-{% endcode %}
+{% endcode-tabs-item %}
+{% endcode-tabs %}
 
 As you see we provide a pointer to the start of our stack and a pointer to the end of our stack.
 
@@ -186,7 +190,8 @@ We also avoid manually adding a padding member to our struct since we have 7`u64
 
 Our `Threadcontext`ends up like this after our changes:
 
-{% code title="ThreadContext" %}
+{% code-tabs %}
+{% code-tabs-item title="ThreadContext" %}
 ```rust
 #[cfg(target_os = "windows")]
 #[derive(Debug, Default)]
@@ -216,7 +221,8 @@ struct ThreadContext {
     stack_end: u64,
 }
 ```
-{% endcode %}
+{% endcode-tabs-item %}
+{% endcode-tabs %}
 
 Last we need to change our `swtich()`function and update our assembly. After all this explanation this is pretty easy:
 
@@ -429,12 +435,11 @@ impl Runtime {
             .expect("no available thread.");
 
         let size = available.stack.len();
+        let s_ptr = available.stack.as_mut_ptr();
         unsafe {
-            let s_ptr = available.stack.as_mut_ptr().offset(size as isize);
-            let s_ptr = (s_ptr as usize & !15) as *mut u8;
-            ptr::write(s_ptr.offset(-24) as *mut u64, guard as u64);
-            ptr::write(s_ptr.offset(-32) as *mut u64, f as u64);
-            available.ctx.rsp = s_ptr.offset(-32) as u64;
+            ptr::write(s_ptr.offset((size - 24) as isize) as *mut u64, guard as u64);
+            ptr::write(s_ptr.offset((size - 32) as isize) as *mut u64, f as u64);
+            available.ctx.rsp = s_ptr.offset((size - 32) as isize) as u64;
         }
         available.state = State::Ready;
     }

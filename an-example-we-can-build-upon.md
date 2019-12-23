@@ -178,7 +178,7 @@ We'll talk more about the stack in the next chapter but one thing we need to kno
 Make note that we write the pointer to an the offset of 16 bytes from the base of our stack \(remember what I wrote about 16 byte alignment?\).
 
 {% hint style="info" %}
-What is `let sb_aligned = (stack_bottom as usize &! 15) as *mut u8;`?
+What does the line`let sb_aligned = (stack_bottom as usize &! 15) as *mut u8;`do?
 
 When we ask for memory like we do when creating a `Vec<u8>`, there is no guarantee that the memory we get is 16-byte aligned when we get it. This line of code essentially rounds our memory address down to the nearest 16-byte aligned address. If it's already 16-byte aligned it does nothing.
 {% endhint %}
