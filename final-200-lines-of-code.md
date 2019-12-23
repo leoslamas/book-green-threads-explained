@@ -127,7 +127,7 @@ impl Runtime {
 
         unsafe {
             let s_ptr = available.stack.as_mut_ptr().offset(size as isize);
-            let s_ptr = (s_ptr as usize &! 15) as *mut u8;
+            let s_ptr = (s_ptr as usize & !15) as *mut u8;
             ptr::write(s_ptr.offset(-24) as *mut u64, guard as u64);
             ptr::write(s_ptr.offset(-32) as *mut u64, f as u64);
             available.ctx.rsp = s_ptr.offset(-32) as u64;

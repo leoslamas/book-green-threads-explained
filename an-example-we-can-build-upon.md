@@ -161,7 +161,7 @@ fn main() {
     let stack_bottom = stack.as_mut_ptr().offset(SSIZE);
 
     unsafe {
-        let sb_aligned = (stack_bottom as usize &! 15) as *mut u8;
+        let sb_aligned = (stack_bottom as usize & !15) as *mut u8;
         std::ptr::write(sb_aligned.offset(-32) as *mut u64, hello as u64);
         ctx.rsp = sb_aligned.offset(-32) as u64;
         gt_switch(&mut ctx);

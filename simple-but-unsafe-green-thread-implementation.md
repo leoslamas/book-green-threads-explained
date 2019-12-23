@@ -236,13 +236,12 @@ Next up is our `spawn()`function:
             .expect("no available thread.");
 
         let size = available.stack.len();
+        let s_ptr = available.stack.as_mut_ptr();
 
         unsafe {
-            let s_ptr = available.stack.as_mut_ptr().offset(size as isize);
-            let s_ptr = (s_ptr as usize &! 15) as *mut u8;
-            ptr::write(s_ptr.offset(-24) as *mut u64, guard as u64);
-            ptr::write(s_ptr.offset(-32) as *mut u64, f as u64);
-            available.ctx.rsp = s_ptr.offset(-32) as u64;
+            ptr::write(s_ptr.offset((size - 24) as isize) as *mut u64, guard as u64);
+            ptr::write(s_ptr.offset((size - 32) as isize) as *mut u64, f as u64);
+            available.ctx.rsp = s_ptr.offset((size - 32) as isize) as u64;
         }
         available.state = State::Ready;
     }
@@ -257,7 +256,7 @@ When we spawn a new thread we first check if there are any available threads \(t
 
 When we find an available thread we get the stack length and a pointer to our `u8` byte-array.
 
-In the next segment we have to use some unsafe functions. First we makes sure that the pointer to the bottom of the stack is 16-byte aligned. Next we write the address to our `guard` function that will be called when the task we provide finishes and the function returns. Then we write the address to `f` which is the function we pass inn and want to run.
+In the next segment we have to use some unsafe functions. First we write the address to our `guard` function that will be called when the task we provide finishes and the function returns. Then we write the address to `f` which is the function we pass inn and want to run.
 
 {% hint style="info" %}
 Remember how we explained how the stack works in [The Stack](the-stack.md) chapter. We want the `f` function to be the first to run so we set the base pointer to `f` and make sure it's 16 byte aligned. We then push the address to `guard` function. This is not 16 byte aligned but when `f` returns the CPU will read the next address as the return address of `f` and resume execution there.
