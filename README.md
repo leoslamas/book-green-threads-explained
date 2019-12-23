@@ -71,5 +71,5 @@ However, if you spot places where I can make the code safer without making it si
 
 2019-06-26: The Supporting Windows appendix treated the `XMM`fields as 64 bits, but they are 128 bits which was an oversight on my part. Correcting this added some interesting material to that chapter but unfortunately also some complexity. However, it's now corrected and explained.
 
-2019-22-12: Added one line of code to make sure the memory we get from the allocator is 16 byte aligned. Refactored to use the "high" memory address as basis for offsets when writing to the stack since this made alignment easier. Thanks to @Veetaha for addressing this issue.
+2019-22-12: Added one line of code to make sure the memory we get from the allocator is 16 byte aligned. Refactored to use the "high" memory address as basis for offsets when writing to the stack since this made alignment easier. Thanks to [@Veetaha](https://github.com/Veetaha) for addressing this issue.
 
