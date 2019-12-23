@@ -16,23 +16,19 @@ We need to use the Rust Nightly since we will use some features that are not sta
 
 In our `main.rs` we start by setting a feature flag that lets us use the `asm!`macro:
 
-{% code-tabs %}
-{% code-tabs-item title="main.rs" %}
+{% code title="main.rs" %}
 ```rust
 #![feature(asm)]
 ```
-{% endcode-tabs-item %}
-{% endcode-tabs %}
+{% endcode %}
 
 Let's set a small stack size here, only 48 bytes so we can print the stack and look at it before we switch contexts:
 
-{% code-tabs %}
-{% code-tabs-item title="main.rs" %}
+{% code title="main.rs" %}
 ```rust
 const SSIZE: isize = 48;
 ```
-{% endcode-tabs-item %}
-{% endcode-tabs %}
+{% endcode %}
 
 {% hint style="warning" %}
 There seems to be an issue in OSX using such a small stack. The minimum for this code to run is a stack size of 624 bytes . The code works on [Rust Playground](https://play.rust-lang.org/) as written here if you want to follow this exact example \(however you'll need to wait ~30 seconds for it to time out due to our loop in the end\).
@@ -40,8 +36,7 @@ There seems to be an issue in OSX using such a small stack. The minimum for this
 
 Then let's add a struct that represents our CPU state. We only focus on the register that stores the "stack pointer" for now since that is all we need:
 
-{% code-tabs %}
-{% code-tabs-item title="main.rs" %}
+{% code title="main.rs" %}
 ```rust
 #[derive(Debug, Default)]
 #[repr(C)]
@@ -49,15 +44,13 @@ struct ThreadContext {
     rsp: u64,
 }
 ```
-{% endcode-tabs-item %}
-{% endcode-tabs %}
+{% endcode %}
 
 In later examples we will use all the registers marked as "callee saved" in the specification document i linked to. These are the registers described in the x86-64 ABI that we'll need to save our context, but right now we only need one register to make the CPU jump over to our stack.
 
 Note that this needs to be `#[repr(C)]` because we access the data the way we do in our assembly. Rust doesn't have a stable ABI so there is no way for us to be sure that this will be represented in memory with `rsp` as the first 8 bytes. C has a stable ABI and that's exactly what this attribute tells the compiler to use. Granted, our struct only has one field right now but we will add more later.
 
-{% code-tabs %}
-{% code-tabs-item title="main.rs" %}
+{% code title="main.rs" %}
 ```rust
 fn hello() -> ! {
     println!("I LOVE WAKING UP ON A NEW STACK!");
@@ -65,8 +58,7 @@ fn hello() -> ! {
     loop {}
 }
 ```
-{% endcode-tabs-item %}
-{% endcode-tabs %}
+{% endcode %}
 
 For this very simple example we will define a function that just prints out a message and then loops forever:
 
@@ -128,43 +120,35 @@ ret
 
 The `ret` keyword instructs the CPU to pop a memory location off the top of the stack and then makes an unconditional jump to that location. In effect we have hijacked our CPU and made it return to our stack.
 
-{% code-tabs %}
-{% code-tabs-item title="output" %}
+{% code title="output" %}
 ```rust
 :
 ```
-{% endcode-tabs-item %}
-{% endcode-tabs %}
+{% endcode %}
 
 Inline ASM is a bit different from plain ASM. There are four additional parameters we pass in after the assembly template. This is the first one called `output` and is where we pass in our output parameters which are parameters we want to use as return values in our Rust function.
 
-{% code-tabs %}
-{% code-tabs-item title="input" %}
+{% code title="input" %}
 ```rust
 : "r"(new)
 ```
-{% endcode-tabs-item %}
-{% endcode-tabs %}
+{% endcode %}
 
 The second is our `input` parameter. The `"r"` literal is what is called a `constraint` when writing inline assembly. You can use these constraints to effectively direct where the compiler can decide to put your input \(in one of the registers as a value or use it as a "memory" location for example\). `"r"` simply means that this is put in a general purpose register that the compiler chooses. Constraints in inline assembly is a pretty big subject themselves, fortunately we have pretty simple needs.
 
-{% code-tabs %}
-{% code-tabs-item title="clobber list" %}
+{% code title="clobber list" %}
 ```rust
 :
 ```
-{% endcode-tabs-item %}
-{% endcode-tabs %}
+{% endcode %}
 
 The next option is the `clobber` list where you specify what registers the compiler should not touch and let it know we want to manage these in our assembly code. If we pop any values of the stack we need to specify what registers here and let the compiler know so it know it can't use these registers freely. We don't need that here since we return to a brand new stack.
 
-{% code-tabs %}
-{% code-tabs-item title="options" %}
+{% code title="options" %}
 ```rust
 : "alignstack"
 ```
-{% endcode-tabs-item %}
-{% endcode-tabs %}
+{% endcode %}
 
 The last one is our `options`. These are unique for Rust and there are three options we can set: `alignstack`, `volatile` and `intel`. I'll refer you [to the documentation to read about them](https://doc.rust-lang.org/unstable-book/language-features/asm.html#options) since they're explained there. Worth noting is that we need to specify the "alignstack" for the code to work on Windows.
 
@@ -174,11 +158,12 @@ The last one is our `options`. These are unique for Rust and there are three opt
 fn main() {
     let mut ctx = ThreadContext::default();
     let mut stack = vec![0_u8; SSIZE as usize];
-    let stack_ptr = stack.as_mut_ptr();
+    let stack_bottom = stack.as_mut_ptr().offset(SSIZE);
 
     unsafe {
-        std::ptr::write(stack_ptr.offset(SSIZE - 16) as *mut u64, hello as u64);
-        ctx.rsp = stack_ptr.offset(SSIZE - 16) as u64;
+        let sb_aligned = (stack_bottom as usize &! 15) as *mut u8;
+        std::ptr::write(sb_aligned.offset(-32) as *mut u64, hello as u64);
+        ctx.rsp = sb_aligned.offset(-32) as u64;
         gt_switch(&mut ctx);
     }
 }
@@ -191,6 +176,12 @@ We'll talk more about the stack in the next chapter but one thing we need to kno
 {% endhint %}
 
 Make note that we write the pointer to an the offset of 16 bytes from the base of our stack \(remember what I wrote about 16 byte alignment?\).
+
+{% hint style="info" %}
+What is `let sb_aligned = (stack_bottom as usize &! 15) as *mut u8;`?
+
+When we ask for memory like we do when creating a `Vec<u8>`, there is no guarantee that the memory we get is 16-byte aligned when we get it. This line of code essentially rounds our memory address down to the nearest 16-byte aligned address. If it's already 16-byte aligned it does nothing.
+{% endhint %}
 
 We cast it as a pointer to an `u64` instead of a pointer to a `u8`. We want to write to position 32, 33, 34, 35, 36, 37, 38, 39 which is the 8 byte space we need to store our `u64`. If we don't do this cast we try to write an u64 only to position 32 which is not what we want.
 
