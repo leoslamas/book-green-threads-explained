@@ -18,6 +18,8 @@ The stack grows downwards, so we start at the top and work our way down.
 
 When we set the `stack pointer`in a _16 byte aligned_ stack, we need to make sure to put our stack pointer to an address which is a _multiple of 16_. In the example above, the only address that satisfies this requirement is `0008`\(remember the stack starts on the top\).
 
+\`\`
+
 If we add the following lines of code to our example in the last chapter just before we do the switch in our main function we can effectively print out our stack and have a look at it:
 
 ```rust
@@ -125,6 +127,17 @@ The Windows x64-86 sets up its stack slightly differently from the x64-86 psABI 
 ![](.gitbook/assets/bilde.png)
 
 As you know now the `%rsp`is our stack pointer. Now as you see we need to put the stack pointer in a position which is a multiple of 16 from our base. The return address is located in the adjacent 8 bytes, and as you see there is a room for memory arguments above that. We need to keep this in mind when we want to do more complex things than we have so far.
+
+You'll notice that we regularly write the address of our function pointer to `stack_ptr + SSIZE - 16` without me explaining exactly why. `SSIZE` is the stack size in bytes by the way.
+
+Think of it this way. We know that the size of a pointer \(in this case a function pointer\) is 8 bytes. We know that `rsp` needs to be written to a 16 byte boundary to satisfy the ABI.
+
+We really have no other choice than to write the function pointer address to `stack_ptr + SSIZE - 16`. Since we write our bytes from low to high addresses we:
+
+* Can't write it to `stack_ptr + SSIZE` \(which is a 16 byte boundary\) since we would write the bytes outside our allocated memory which is not allowed.
+* Can't write it to `stack_ptr + SSIZE - 8` which would be a valid memory space, but it's not aligned to a 16 byte boundary.
+
+That leaves us with `stack_ptr + SSIZE - 16`as the first suitable position. In practice, we write the 8 bytes in the positions: `-16, 15, ..., -10, -9`from the _high address_ of our stack \(confusingly, this is often called the bottom of the stack since it grows downwards\).
 
 ## Bonus material
 
