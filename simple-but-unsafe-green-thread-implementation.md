@@ -7,7 +7,7 @@ Before we start I'll mention that the code we write is quite unsafe and is not a
 The first thing we do is to delete our example in our `main.rs`so we start from scratch and add the following:
 
 ```rust
-#![feature(asm)]
+#![feature(llvm_asm)]
 #![feature(naked_functions)]
 use std::ptr;
 
@@ -298,7 +298,7 @@ We are very soon at the finish line, just one more function to go. This one shou
 #[naked]
 #[inline(never)]
 unsafe fn switch(old: *mut ThreadContext, new: *const ThreadContext) {
-    asm!("
+    llvm_asm!("
         mov     %rsp, 0x00($0)
         mov     %r15, 0x08($0)
         mov     %r14, 0x10($0)

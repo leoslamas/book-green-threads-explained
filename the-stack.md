@@ -156,7 +156,7 @@ If you see anything you don't recognize in this code, relax, we will go through 
 {% endhint %}
 
 ```rust
-#![feature(asm)]
+#![feature(llvm_asm)]
 #![feature(naked_functions)]
 use std::io::Write;
 
@@ -198,7 +198,7 @@ fn hello() {
 }
 
 unsafe fn gt_switch(new: *const ThreadContext) {
-    asm!("
+    llvm_asm!("
         mov     0x00($0), %rsp
         ret
        "

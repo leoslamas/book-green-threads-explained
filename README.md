@@ -46,7 +46,7 @@ All the code I provide here is in a single file and has no dependencies which me
 
 ## Portability and issues
 
-Currently there is an issue I have with the `asm!`macro that doesn't compile in release mode. It seems to be related to the `"=m"`constraint I use in the inline macro.
+Currently there is an issue I have with the `llvm_asm!`macro that doesn't compile in release mode. It seems to be related to the `"=m"`constraint I use in the inline macro.
 
 **Edit 2019-06-21:**  
 I've decided to work around this and change the inline assembly to compile and run on release builds.
@@ -64,6 +64,8 @@ However, if you spot places where I can make the code safer without making it si
 [Quentin Carbonneaux](https://github.com/mpu) wrote an [nice article](https://c9x.me/articles/gthreads/intro.html) back in 2013 which I used as inspiration for the main code example. Thanks to [nickelpro](https://github.com/nickelpro) for help and feedback on Windows support.
 
 ## Edits
+
+2020-05-20: Changed to the `llvm_asm!` macro since we use the syntax used by llvm in this book. The new Rust syntax for inline assembly has now been merged into the nightly compiler and uses the `asm!` macro, which would have caused problems for the examples in this book.
 
 2019-06-18: New chapter implementing a proper Windows support
 

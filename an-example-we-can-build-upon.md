@@ -14,11 +14,11 @@ We need to use the Rust Nightly since we will use some features that are not sta
 
 `rustup override set nightly`
 
-In our `main.rs` we start by setting a feature flag that lets us use the `asm!`macro:
+In our `main.rs` we start by setting a feature flag that lets us use the `llvm_asm!`macro:
 
 {% code title="main.rs" %}
 ```rust
-#![feature(asm)]
+#![feature(llvm_asm)]
 ```
 {% endcode %}
 
@@ -66,7 +66,7 @@ Next up is our inline assembly where we switch over to our own stack.
 
 ```rust
 unsafe fn gt_switch(new: *const ThreadContext) {
-    asm!("
+    llvm_asm!("
         mov     0x00($0), %rsp
         ret
        "
@@ -97,10 +97,10 @@ gt_switch(new: *const ThreadContext)
 Here we take a pointer to an instance of our `ThreadContext` from which we will only read one field.
 
 ```rust
-asm!("
+llvm_asm!("
 ```
 
-This is the `asm!`macro in the Rust standard library. It will check our syntax and provide an error message if it encounters something that doesn't look like valid AT&T \(by default\) Assembly syntax.
+This is the `llvm_asm!`macro in the Rust standard library. It will check our syntax and provide an error message if it encounters something that doesn't look like valid AT&T \(by default\) Assembly syntax.
 
 The first thing the macro takes as input is the assembly template:
 

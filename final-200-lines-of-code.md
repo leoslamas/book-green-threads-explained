@@ -1,7 +1,7 @@
 # Final 200 lines of code
 
 ```rust
-#![feature(asm)]
+#![feature(llvm_asm)]
 #![feature(naked_functions)]
 use std::ptr;
 
@@ -153,7 +153,7 @@ pub fn yield_thread() {
 #[naked]
 #[inline(never)]
 unsafe fn switch(old: *mut ThreadContext, new: *const ThreadContext) {
-    asm!("
+    llvm_asm!("
         mov     %rsp, 0x00($0)
         mov     %r15, 0x08($0)
         mov     %r14, 0x10($0)
