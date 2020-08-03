@@ -228,23 +228,23 @@ The `self.threads.len() > 0`part in the end is just a way for us to prevent the 
 Next up is our `spawn()`function:
 
 ```rust
-    pub fn spawn(&mut self, f: fn()) {
-        let available = self
-            .threads
-            .iter_mut()
-            .find(|t| t.state == State::Available)
-            .expect("no available thread.");
+pub fn spawn(&mut self, f: fn()) {
+    let available = self
+        .threads
+        .iter_mut()
+        .find(|t| t.state == State::Available)
+        .expect("no available thread.");
 
-        let size = available.stack.len();
-        let s_ptr = available.stack.as_mut_ptr();
-
-        unsafe {
-            ptr::write(s_ptr.offset((size - 24) as isize) as *mut u64, guard as u64);
-            ptr::write(s_ptr.offset((size - 32) as isize) as *mut u64, f as u64);
-            available.ctx.rsp = s_ptr.offset((size - 32) as isize) as u64;
-        }
-        available.state = State::Ready;
+    let size = available.stack.len();
+    unsafe {
+        let s_ptr = available.stack.as_mut_ptr().offset(size as isize);
+        let s_ptr = (s_ptr as usize & !15) as *mut u8;
+        std::ptr::write(s_ptr.offset(-16) as *mut u64, guard as u64);
+        std::ptr::write(s_ptr.offset(-24) as *mut u64, skip as u64);
+        std::ptr::write(s_ptr.offset(-32) as *mut u64, f as u64);
+        available.ctx.rsp = s_ptr.offset(-32) as u64;
     }
+    available.state = State::Ready;
 }
 ```
 
@@ -256,7 +256,7 @@ When we spawn a new thread we first check if there are any available threads \(t
 
 When we find an available thread we get the stack length and a pointer to our `u8` byte-array.
 
-In the next segment we have to use some unsafe functions. First we write the address to our `guard` function that will be called when the task we provide finishes and the function returns. Then we write the address to `f` which is the function we pass inn and want to run.
+In the next segment we have to use some unsafe functions. First we makes sure that the memory segment we'll use is 16 byte aligned. Then write the address to our `guard` function that will be called when the task we provide finishes and the function returns. Secondly we'll write the address to a `skip` function which is there just to handle the gap when we return from `f`so that `guard` will get called on a 16 byte boundary. Lastly we write the address to `f` which is the function we pass inn and want to run.
 
 {% hint style="info" %}
 Remember how we explained how the stack works in [The Stack](the-stack.md) chapter. We want the `f` function to be the first to run so we set the base pointer to `f` and make sure it's 16 byte aligned. We then push the address to `guard` function. This is not 16 byte aligned but when `f` returns the CPU will read the next address as the return address of `f` and resume execution there.
@@ -268,7 +268,7 @@ Lastly we set the state as `Ready` which means we have work to do and that we ar
 
 We're now finished implementing our `Runtime`, if you got all this you basically understand _how_ green threads work. However there are still a few details needed to implement them.
 
-## Guard and switch functions
+## Guard, skip and switch functions
 
 ```rust
 fn guard() {
@@ -280,6 +280,13 @@ fn guard() {
 ```
 
 The function means that the function we passed in has returned and that means our thread is finished running its task so we de-reference our `Runtime` and call `t_return()`. We could have made a function that does some additional work when a thread is finished but right now our `t_return()` function does all we need. It marks our thread as `Available` \(if it's not our base thread\) and `yields` so we can resume work on a different thread.
+
+```rust
+#[naked]
+fn skip() { }
+```
+
+There is not much happening in the `skip` function. We use the `#[naked]`attribute so that all this function compiles down to is essentially a `ret`instruction. `ret`will just pop off the next value from the stack and jump to whatever instructions that address points to. In our case this is the `guard`function. As you probably remember from [previous chapters](background-information.md) this makes sure that the we comply with the ABI requirements.
 
 ```rust
 pub fn yield_thread() {
@@ -328,7 +335,7 @@ So here is our inline Assembly. As you remember from our first example this is j
 
 This is essentially all we need to do to save and resume execution.
 
-Here we see the `#[naked]`attribute used. We don't want Rust to generate a prologue and epilogue for our function since this is all assembly and we want to handle everything ourselves. If we don't include this we will fail to switch back to our stack the second time.
+Here we see the `#[naked]`attribute used again. Usually every function has a prologue and an epilogue and we don't want that here since this is all assembly and we want to handle everything ourselves. If we don't include this we will fail to switch back to our stack the second time.
 
 {% hint style="info" %}
 Most of this inline assembly is explained in the end of the chapter [An example we can build upon](an-example-we-can-build-upon.md) so if this seems foreign to you, go and read that part of the chapter and come back.

@@ -76,8 +76,8 @@ When we switch threads, we should provide the information it expects about our [
 
 Our `ThreadContext` now looks like this:
 
-{% code-tabs %}
-{% code-tabs-item title="ThreadContext" %}
+{% tabs %}
+{% tab title="ThreadContext" %}
 ```rust
 #[cfg(target_os="windows")]
 #[derive(Debug, Default)]
@@ -106,8 +106,8 @@ struct ThreadContext {
     stack_end: u64,
 }
 ```
-{% endcode-tabs-item %}
-{% endcode-tabs %}
+{% endtab %}
+{% endtabs %}
 
 {% hint style="info" %}
 Notice we use the `#[cfg(target_os="windows")]` attribute here on all the Windows specific functions and structs, which mean we need to give our "original" definitions an attribute that makes sure it compiles them for all other targets than Windows: `[cfg(not(target_os="windows"))].`
@@ -125,8 +125,8 @@ You see, since Rust sets up our stack frames, we only need to care about where t
 
 Now to implement this we need to make a change to our `spawn()`function to actually provide this information and set up our stack.
 
-{% code-tabs %}
-{% code-tabs-item title="spawn" %}
+{% tabs %}
+{% tab title="spawn" %}
 ```rust
     #[cfg(target_os = "windows")]
     pub fn spawn(&mut self, f: fn()) {
@@ -152,14 +152,14 @@ Now to implement this we need to make a change to our `spawn()`function to actua
     }
 }
 ```
-{% endcode-tabs-item %}
-{% endcode-tabs %}
+{% endtab %}
+{% endtabs %}
 
 As you see we provide a pointer to the start of our stack and a pointer to the end of our stack.
 
-#### Possible alignment issues
+### Possible alignment issues
 
-Well, this is supposed to be hard, remember? Windows does not disappoint us making things too easy. You see, when we move data from a 128 bit register we need to use some special assembly instructions. There are several of them that _mostly_ do the same: 
+Well, this is supposed to be hard, remember? Windows does not disappoint us making things too easy. You see, when we move data from a 128 bit register we need to use some special assembly instructions. There are several of them that _mostly_ do the same:
 
 * `movdqa` [move double quad word aligned](https://www.felixcloutier.com/x86/movdqa:vmovdqa32:vmovdqa64)
 * `movdqu`[move double quad word unaligned](https://www.felixcloutier.com/x86/movdqu:vmovdqu8:vmovdqu16:vmovdqu32:vmovdqu64)
@@ -168,15 +168,15 @@ Well, this is supposed to be hard, remember? Windows does not disappoint us maki
 
 As you see most method has an `aligned`and and `unaligned`variant. The difference here is that `*ps`type instructions are targeting floating point values and the `*dq/*dq` type instructions are targeting integer values. Now both will work, but if you clicked on the Microsoft reference you probably noticed that the `XMM` are used for floating point values so the `*ps`type instructions are the right ones for us to use.
 
-The `aligned`versions have historically been slightly faster under most circumstances and would be preferred in a context switch, but the latest information I've read about this is **that they've been practically the same for the last 6 generations of CPUs regarding performance**. 
+The `aligned`versions have historically been slightly faster under most circumstances and would be preferred in a context switch, but the latest information I've read about this is **that they've been practically the same for the last 6 generations of CPUs regarding performance**.
 
 {% hint style="info" %}
 If you want to read more about the cost for different instructions on newer and older processors, have a look at [Agner Fog's instruction tables](https://www.agner.org/optimize/instruction_tables.pdf).
 {% endhint %}
 
-However, since the aligned instructions are used in all the reference implementations I've encountered, we'll use them as well although they expose us for some extra complexity, we are still learning stuff aren't we? 
+However, since the aligned instructions are used in all the reference implementations I've encountered, we'll use them as well although they expose us for some extra complexity, we are still learning stuff aren't we?
 
-By aligned, we mean that the memory they read/write from/to is 16 byte aligned. 
+By aligned, we mean that the memory they read/write from/to is 16 byte aligned.
 
 Now, the way I solve this is to push the fields that requires alignment to the start of our struct, and add a new attribute `#[repr(align(16))]`.
 
@@ -190,8 +190,8 @@ We also avoid manually adding a padding member to our struct since we have 7`u64
 
 Our `Threadcontext`ends up like this after our changes:
 
-{% code-tabs %}
-{% code-tabs-item title="ThreadContext" %}
+{% tabs %}
+{% tab title="ThreadContext" %}
 ```rust
 #[cfg(target_os = "windows")]
 #[derive(Debug, Default)]
@@ -221,8 +221,8 @@ struct ThreadContext {
     stack_end: u64,
 }
 ```
-{% endcode-tabs-item %}
-{% endcode-tabs %}
+{% endtab %}
+{% endtabs %}
 
 Last we need to change our `swtich()`function and update our assembly. After all this explanation this is pretty easy:
 
@@ -309,9 +309,7 @@ You'll also find this code in the [Windows branch in the repository](https://git
 {% endhint %}
 
 ```rust
-#![feature(llvm_asm)]
-#![feature(naked_functions)]
-use std::ptr;
+#![feature(llvm_asm, naked_functions)]
 
 const DEFAULT_STACK_SIZE: usize = 1024 * 1024 * 2;
 const MAX_THREADS: usize = 4;
@@ -437,13 +435,17 @@ impl Runtime {
         let size = available.stack.len();
         let s_ptr = available.stack.as_mut_ptr();
         unsafe {
-            ptr::write(s_ptr.offset((size - 24) as isize) as *mut u64, guard as u64);
-            ptr::write(s_ptr.offset((size - 32) as isize) as *mut u64, f as u64);
+            std::ptr::write(s_ptr.offset((size - 16) as isize) as *mut u64, guard as u64);
+            std::ptr::write(s_ptr.offset((size - 24) as isize) as *mut u64, skip as u64);
+            std::ptr::write(s_ptr.offset((size - 32) as isize) as *mut u64, f as u64);
             available.ctx.rsp = s_ptr.offset((size - 32) as isize) as u64;
         }
         available.state = State::Ready;
     }
 }
+
+#[naked]
+fn skip() { }
 
 fn guard() {
     unsafe {
