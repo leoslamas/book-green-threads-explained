@@ -256,17 +256,17 @@ When we spawn a new thread we first check if there are any available threads \(t
 
 When we find an available thread we get the stack length and a pointer to our `u8` byte-array.
 
-In the next segment we have to use some unsafe functions. First we makes sure that the memory segment we'll use is 16 byte aligned. Then write the address to our `guard` function that will be called when the task we provide finishes and the function returns. Secondly we'll write the address to a `skip` function which is there just to handle the gap when we return from `f`so that `guard` will get called on a 16 byte boundary. Lastly we write the address to `f` which is the function we pass inn and want to run.
+In the next segment we have to use some unsafe functions. First we make sure that the memory segment we'll use is 16-byte aligned. Then write the address to our `guard` function that will be called when the task we provide finishes and the function returns. Secondly we'll write the address to a `skip` function which is there just to handle the gap when we return from `f`so that `guard` will get called on a 16 byte boundary. The next value we write to the stack is the address to `f`.
 
 {% hint style="info" %}
-Remember how we explained how the stack works in [The Stack](the-stack.md) chapter. We want the `f` function to be the first to run so we set the base pointer to `f` and make sure it's 16 byte aligned. We then push the address to `guard` function. This is not 16 byte aligned but when `f` returns the CPU will read the next address as the return address of `f` and resume execution there.
+Remember how we explained how the stack works in [The Stack](the-stack.md) chapter. We want the `f` function to be the first to run so we set the base pointer to `f` and make sure it's 16 byte aligned. We then push the address to the `skip`function and lastly the `guard` function. Doing this makes sure that `guard` is 16-byte aligned so we adhere to the ABI requirements.
 {% endhint %}
 
-Third, we set the value of `rsp` which is the stack pointer to the address of our provided function so we start executing that first when we are scheduled to run.
+After we've written our function pointers to the stack, we set the value of `rsp` which is the stack pointer to the address of our provided function, so we start executing that first when we are scheduled to run.
 
 Lastly we set the state as `Ready` which means we have work to do and that we are ready to do it. Remember, it's up to our "scheduler" to actually start up this thread.
 
-We're now finished implementing our `Runtime`, if you got all this you basically understand _how_ green threads work. However there are still a few details needed to implement them.
+We're now finished implementing our `Runtime`, if you got all this you basically understand _how_ green threads work. However, there are still a few details needed to implement them.
 
 ## Guard, skip and switch functions
 
@@ -286,7 +286,7 @@ The function means that the function we passed in has returned and that means ou
 fn skip() { }
 ```
 
-There is not much happening in the `skip` function. We use the `#[naked]`attribute so that all this function compiles down to is essentially a `ret`instruction. `ret`will just pop off the next value from the stack and jump to whatever instructions that address points to. In our case this is the `guard`function. As you probably remember from [previous chapters](background-information.md) this makes sure that the we comply with the ABI requirements.
+There is not much happening in the `skip` function. We use the `#[naked]`attribute so that this function essentially compiles down to just `ret`instruction. `ret`will just pop off the next value from the stack and jump to whatever instructions that address points to. In our case this is the `guard`function. As you probably remember from [previous chapters](background-information.md) this makes sure that we comply with the ABI requirements.
 
 ```rust
 pub fn yield_thread() {
