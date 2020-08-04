@@ -44,15 +44,6 @@ You don't have to be a Rust programmer to understand this article but it is high
 
 All the code I provide here is in a single file and has no dependencies which means that you can easily start your own project and follow along if you want to \(I suggest you do\). You can even run most of the code in the [Rust playground](https://play.rust-lang.org). Just remember to use the `nightly` version of the compiler.
 
-## Portability and issues
-
-Currently there is an issue I have with the `llvm_asm!`macro that doesn't compile in release mode. It seems to be related to the `"=m"`constraint I use in the inline macro.
-
-**Edit 2019-06-21:**  
-I've decided to work around this and change the inline assembly to compile and run on release builds.
-
-I've tested the code on OSX, Linux and Windows.
-
 ## Disclaimer <a id="docs-internal-guid-12e6c217-7fff-3de7-4bee-4532b47ef574"></a>
 
 I'm not trying to make a perfect implementation here. I'm cutting corners to get down to the essence and fit it into what was originally intended to be an article but expanded into a small book. This is not the best way of displaying Rusts greatest strengths, its safety guarantees, but it does show an interesting use of Rust and the code is mostly pretty clean and easy to follow.
@@ -65,7 +56,7 @@ However, if you spot places where I can make the code safer without making it si
 
 ## Edits
 
-2020-08-04: Thanks to [ziyi-yan](https://github.com/ziyi-yan) which identified an issue with the `guard` function not being 16-byte aligned the example is now correct and can be used as a basis for more advanced experimentation. See the relevant [issue](https://github.com/cfsamson/example-greenthreads/issues/19) in the example repo for more information.
+2020-08-04: Thanks to [ziyi-yan](https://github.com/ziyi-yan), which identified an issue with the `guard` function not being 16-byte aligned, the example is now correct and can be used as a basis for more advanced experimentation. See the relevant [issue](https://github.com/cfsamson/example-greenthreads/issues/19) in the example repo for more information.
 
 2020-05-20: Changed to the `llvm_asm!` macro since we use the syntax used by llvm in this book. The new Rust syntax for inline assembly has now been merged into the nightly compiler and uses the `asm!` macro, which would have caused problems for the examples in this book.
 
