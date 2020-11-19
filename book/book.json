@@ -1,0 +1,6 @@
+{ 
+    "title": "Green Threads Explained",
+    "author": "Carl Fredrik Samson",
+    "gitbook": "3.2.3",
+    "plugins": ["hints", "tabs2"] 
+}
